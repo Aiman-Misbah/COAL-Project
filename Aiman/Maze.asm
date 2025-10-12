@@ -505,13 +505,18 @@ Maze_WelcomeScreen PROC
     ret
 
 maze_returnToMain:
-    mov dh, 23      ; Position below mini maze
+    mov dh, 23
     mov dl, 47
     call Gotoxy
+    mov eax, yellow + (black * 16)
+    call SetTextColor
     mov edx, OFFSET maze_returningMsg
     call WriteString
-    mov eax, 1500   ; Delay ~1 second
+    mov eax, 1500
     call Delay
+    ; Reset color back to light gray on black
+    mov eax, lightGray + (black * 16)
+    call SetTextColor
     mov eax, 0
     ret
 
@@ -519,12 +524,18 @@ maze_proceed:
     mov dh, 23
     mov dl, 47
     call Gotoxy
+    mov eax, yellow + (black * 16)
+    call SetTextColor
     mov edx, OFFSET maze_proceedingMsg
     call WriteString
     mov eax, 1500
     call Delay
+    ; Reset color back to light gray on black
+    mov eax, lightGray + (black * 16)
+    call SetTextColor
     mov eax, 1
     ret
+
 Maze_WelcomeScreen ENDP
 
 
