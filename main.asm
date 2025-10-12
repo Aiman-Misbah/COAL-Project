@@ -1,5 +1,6 @@
 INCLUDE Irvine32.inc
 
+
 .data
 menuTitle BYTE "MAIN MENU - CHOOSE YOUR GAME",0
 option1 BYTE "1. Treasure Hunt Maze",0
@@ -121,9 +122,6 @@ quitProgram:
 
 main ENDP
 
-; Centered loading screen with different animations
-; Centered loading screen with arrays
-; Centered loading screen with arrays
 ShowLoadingScreen PROC
     pushad
     call Clrscr
