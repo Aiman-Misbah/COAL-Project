@@ -439,7 +439,7 @@ Maze_WelcomeScreen PROC
     mov edx, OFFSET maze_welcomeTitle3
     call WriteString
 
-    mov eax, 11 + (black * 16)
+    mov eax, 14 + (black * 16)
     call SetTextColor
     mov dh, 6
     mov dl, 31
@@ -451,7 +451,7 @@ Maze_WelcomeScreen PROC
     mov dl, 31
     call Gotoxy
     mov edx, OFFSET maze_welcomePrompt
-    mov eax, white + (black * 16)
+    mov eax, 7 + (black * 16)
 call SetTextColor
     call WriteString
 
@@ -476,7 +476,7 @@ call SetTextColor
     mov dh, 8
     mov dl, 49
     call Gotoxy
-    mov eax, cyan + (black * 16)
+    mov eax, 11 + (black * 16)
     call SetTextColor
     mov al, 'R'
     call WriteChar
@@ -510,7 +510,7 @@ maze_returnToMain:
     mov dh, 23
     mov dl, 47
     call Gotoxy
-    mov eax, 3 + (black * 16)
+    mov eax, 11 + (black * 16)
     call SetTextColor
     mov edx, OFFSET maze_returningMsg
     call WriteString
