@@ -89,7 +89,7 @@ maze_centerPos DWORD ?
 
 DrawMiniMaze PROC
     pushad
-    mov eax, yellow + (black * 16)
+    mov eax, 10 + (black * 16)
     call SetTextColor
     mov ecx,0
 mini_draw_rows:
@@ -425,7 +425,7 @@ Maze_WelcomeScreen PROC
     call SetTextColor
     call Clrscr
 
-    mov eax, yellow + (black * 16)
+    mov eax, 13 + (black * 16)
     call SetTextColor
     mov dh, 5
     mov dl, 31
@@ -439,7 +439,7 @@ Maze_WelcomeScreen PROC
     mov edx, OFFSET maze_welcomeTitle3
     call WriteString
 
-    mov eax, white + (black * 16)
+    mov eax, 11 + (black * 16)
     call SetTextColor
     mov dh, 6
     mov dl, 31
@@ -451,6 +451,8 @@ Maze_WelcomeScreen PROC
     mov dl, 31
     call Gotoxy
     mov edx, OFFSET maze_welcomePrompt
+    mov eax, white + (black * 16)
+call SetTextColor
     call WriteString
 
     mov dh, 11
@@ -508,7 +510,7 @@ maze_returnToMain:
     mov dh, 23
     mov dl, 47
     call Gotoxy
-    mov eax, yellow + (black * 16)
+    mov eax, 3 + (black * 16)
     call SetTextColor
     mov edx, OFFSET maze_returningMsg
     call WriteString
@@ -524,7 +526,7 @@ maze_proceed:
     mov dh, 23
     mov dl, 47
     call Gotoxy
-    mov eax, yellow + (black * 16)
+    mov eax, 10 + (black * 16)
     call SetTextColor
     mov edx, OFFSET maze_proceedingMsg
     call WriteString
