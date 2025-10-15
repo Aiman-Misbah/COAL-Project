@@ -9,6 +9,8 @@ flapStrength DWORD 2
 gameOver BYTE 0
 score DWORD 0
 frameCount BYTE 0
+gamePaused BYTE 0
+needsRedraw BYTE 1  ; New flag to track when screen needs redrawing
 
 ; Pipe variables - now scaled based on screen size
 pipe1X DWORD ?
@@ -31,7 +33,8 @@ groundChar BYTE 0CDh, 0
 ; Messages
 scoreMsg BYTE "Score: ", 0
 gameOverMsg BYTE "GAME OVER! Press any key to return to menu", 0
-instructions BYTE "Press SPACE to flap", 0
+instructions BYTE "Press UP ARROW to flap, P to pause", 0
+pauseMsg BYTE "GAME PAUSED - Press R to resume", 0
 
 ; Screen dimensions and scaling
 screenWidth DWORD ?
@@ -102,19 +105,28 @@ HeightOK:
     
     ; Reset game state
     mov gameOver, 0
+    mov gamePaused, 0
+    mov needsRedraw, 1
     mov score, 0
     mov frameCount, 0
     mov pipe1Scored, 0
     mov pipe2Scored, 0
     
     call Randomize
-    call RandomizePipe1
-    call RandomizePipe2
+    mov eax, OFFSET pipe1GapY  ; Pass pointer to pipe1GapY
+    call RandomizePipe
+    mov eax, OFFSET pipe2GapY  ; Pass pointer to pipe2GapY  
+    call RandomizePipe
     ret
 ResetFlappyBird ENDP
 
 FlappyBird_GameLoop PROC
 GameLoop:
+    ; Check if game is paused
+    cmp gamePaused, 1
+    je PausedLoop
+    
+    ; Normal game loop
     inc frameCount
     call CheckInput
     
@@ -136,8 +148,30 @@ NoCeilingLimit:
     cmp gameOver, 1
     je ExitGame
     
+    ; Always redraw during normal gameplay
+    mov needsRedraw, 1
     call DrawGame
     mov eax, 100
+    call Delay
+    jmp GameLoop
+
+PausedLoop:
+    ; Game is paused - just check input
+    call CheckInput
+    cmp gameOver, 1
+    je ExitGame
+    
+    ; Only redraw when first entering pause state
+    cmp needsRedraw, 1
+    jne SkipPauseRedraw
+    
+    ; Draw the game screen once when pausing
+    call DrawGame
+    call DrawPauseMessage
+    mov needsRedraw, 0  ; Don't redraw again until we resume
+    
+SkipPauseRedraw:
+    mov eax, 50  ; Shorter delay for more responsive input during pause
     call Delay
     jmp GameLoop
     
@@ -150,27 +184,41 @@ CheckInput PROC
     call ReadKey
     jz NoInput
     
-    cmp al, ' '
+    cmp ax, 4800h   ; UP ARROW key
     je DoFlap
-    cmp ax, 4800h
-    je DoFlap
-    cmp al, 'q'
+    cmp al, 'p'     ; P key - pause
+    je TogglePause
+    cmp al, 'P'     ; P key (uppercase) - pause
+    je TogglePause
+    cmp al, 'r'     ; R key - resume
+    je ResumeGame
+    cmp al, 'R'     ; R key (uppercase) - resume
+    je ResumeGame
+    cmp al, 'q'     ; Q key
     je QuitToMenu
-    cmp al, 'Q'
+    cmp al, 'Q'     ; Q key (uppercase)
     je QuitToMenu
     jmp NoInput
     
 DoFlap:
     mov eax, flapStrength
     sub birdY, eax
+    jmp NoInput
 
-    mov eax, birdY
-    cmp eax, MSG_AREA_HEIGHT-1
-    jge FlapNoCeilingLimit
-    mov eax, MSG_AREA_HEIGHT-1
-    mov birdY, eax
+TogglePause:
+    ; Only pause if game is not already paused
+    cmp gamePaused, 0
+    jne NoInput
+    mov gamePaused, 1
+    mov needsRedraw, 1  ; Force redraw when pausing
+    jmp NoInput
 
-FlapNoCeilingLimit:
+ResumeGame:
+    ; Only resume if game is paused
+    cmp gamePaused, 1
+    jne NoInput
+    mov gamePaused, 0
+    mov needsRedraw, 1  ; Force redraw when resuming
     jmp NoInput
     
 QuitToMenu:
@@ -180,7 +228,51 @@ NoInput:
     ret
 CheckInput ENDP
 
+DrawPauseMessage PROC
+    ; Draw pause message below the ground
+    mov eax, lightRed + (black * 16)
+    call SetTextColor
+    
+    ; Position message at the bottom of the screen
+    mov eax, screenHeight
+    mov dh, al
+    mov dl, 0
+    call Gotoxy
+    
+    ; Clear the line first
+    mov ecx, screenWidth
+    cmp ecx, 300
+    jbe ClearLineOK
+    mov ecx, 300
+ClearLineOK:
+    mov al, ' '
+ClearLine:
+    call WriteChar
+    loop ClearLine
+    
+    ; Now draw the pause message centered
+    mov eax, screenHeight
+    mov dh, al
+    mov eax, screenWidth
+    sub eax, 30  ; Length of pause message
+    shr eax, 1   ; Divide by 2 to center
+    mov dl, al
+    call Gotoxy
+    
+    mov edx, OFFSET pauseMsg
+    call WriteString
+    
+    ; Reset text color
+    mov eax, white + (black * 16)
+    call SetTextColor
+    ret
+DrawPauseMessage ENDP
+
 UpdatePipes PROC
+    ; Don't update pipes if game is paused
+    cmp gamePaused, 1
+    je SkipPipeUpdate
+    
     mov al, frameCount
     and al, 1
     jnz SkipMove
@@ -197,7 +289,8 @@ SkipMove:
     ; Reset pipe1 to right side
     mov eax, screenWidth
     mov pipe1X, eax
-    call RandomizePipe1
+    mov eax, OFFSET pipe1GapY  ; Pass pointer to pipe1GapY
+    call RandomizePipe
     mov pipe1Scored, 0
     
 CheckPipe2Reset:
@@ -207,37 +300,47 @@ CheckPipe2Reset:
     ; Reset pipe2 to right side
     mov eax, screenWidth
     mov pipe2X, eax
-    call RandomizePipe2
+    mov eax, OFFSET pipe2GapY  ; Pass pointer to pipe2GapY
+    call RandomizePipe
     mov pipe2Scored, 0
     
+SkipPipeUpdate:
 Done:
     ret
 UpdatePipes ENDP
 
-RandomizePipe1 PROC
-    ; Simple random gap position (avoid edges and message area)
-    mov eax, screenHeight
-    sub eax, MSG_AREA_HEIGHT  ; Subtract message area
-    sub eax, 15  ; Leave margin for ground and ceiling
-    call RandomRange
-    add eax, 5   ; Minimum position
-    add eax, MSG_AREA_HEIGHT  ; Add message area offset
-    mov pipe1GapY, eax
-    ret
-RandomizePipe1 ENDP
+; Reusable procedure to randomize pipe gap position
+; Parameters: pointer to pipeGapY in EAX
+RandomizePipe PROC
+    push eax
+    push ebx
+    push ecx
 
-RandomizePipe2 PROC
-    mov eax, screenHeight
-    sub eax, MSG_AREA_HEIGHT  ; Subtract message area
-    sub eax, 15
+    mov ebx, eax
+    
+    ; Simple random gap position (avoid edges and message area)
+    mov ecx, screenHeight
+    sub ecx, MSG_AREA_HEIGHT  ; Subtract message area
+    sub ecx, 15               ; Leave margin for ground and ceiling
+    mov eax, ecx              ; Max value for RandomRange
     call RandomRange
-    add eax, 5
+    add eax, 5                ; Minimum position
     add eax, MSG_AREA_HEIGHT  ; Add message area offset
-    mov pipe2GapY, eax
+    
+    ; Store result in the pipeGapY variable (pointer is in stack)
+   mov [ebx], eax           ; Store the random gap position
+    
+    pop ecx
+    pop ebx
+    pop eax
     ret
-RandomizePipe2 ENDP
+RandomizePipe ENDP
 
 UpdateScore PROC
+    ; Don't update score if game is paused
+    cmp gamePaused, 1
+    je SkipScoreUpdate
+    
     ; Check if bird passed pipe1 (birdX > pipe1X + some offset)
     mov eax, pipe1X
     add eax, 3  ; Add small offset so we score when bird is past the pipe, not when it touches it
@@ -264,73 +367,79 @@ CheckPipe2Score:
     mov pipe2Scored, 1
     inc score
     
+SkipScoreUpdate:
 DoneScoring:
     ret
 UpdateScore ENDP
 
 CheckCollisions PROC
-    ; FIX 2: Ground collision at bottom of screen
+    ; Don't check collisions if game is paused
+    cmp gamePaused, 1
+    je SkipCollisionCheck
+    
+    ; Ground collision at bottom of screen
     mov eax, birdY
     add eax, 2  ; Check bottom of the bird (3 rows tall)
     cmp eax, screenHeight
-    jl CheckPipe1  ; Skip ceiling check - go straight to pipe collision
+    jl CheckPipes  ; Skip ceiling check - go straight to pipe collision
     mov gameOver, 1
     ret
     
-CheckPipe1:
-    ; FIX 3: Better pipe collision detection
-    ; Check horizontal proximity to pipe1
-    mov eax, pipe1X
-    sub eax, birdX
-    cmp eax, 3
-    jg CheckPipe2
-    cmp eax, -1  ; Bird is 2 characters wide
-    jl CheckPipe2
+CheckPipes:
+    ; Check collision with pipe1
+    mov esi, pipe1X
+    mov edi, pipe1GapY
+    call CheckSinglePipeCollision
+    cmp gameOver, 1
+    je NoCollision  ; If collision with pipe1, exit
     
-    ; Check vertical collision with pipe1 gap
-    mov eax, birdY
-    cmp eax, pipe1GapY
-    jl Collision        ; Above gap - collision
+    ; Check collision with pipe2
+    mov esi, pipe2X
+    mov edi, pipe2GapY
+    call CheckSinglePipeCollision
     
-    mov eax, birdY
-    add eax, 2          ; Bottom of bird
-    mov ebx, pipe1GapY
-    add ebx, 8          ; Gap size
-    cmp eax, ebx
-    jg Collision        ; Below gap - collision
-    jmp NoCollision
-    
-CheckPipe2:
-    ; Check horizontal proximity to pipe2
-    mov eax, pipe2X
-    sub eax, birdX
-    cmp eax, 3
-    jg NoCollision
-    cmp eax, -1
-    jl NoCollision
-    
-    mov eax, birdY
-    cmp eax, pipe2GapY
-    jl Collision
-    
-    mov eax, birdY
-    add eax, 2
-    mov ebx, pipe2GapY
-    add ebx, 8
-    cmp eax, ebx
-    jg Collision
-    jmp NoCollision
-    
-Collision:
-    mov gameOver, 1
-    
+SkipCollisionCheck:
 NoCollision:
     ret
 CheckCollisions ENDP
 
+; Reusable procedure to check collision with a single pipe
+; Parameters: pipeX in ESI, pipeGapY in EDI
+CheckSinglePipeCollision PROC
+    ; Check horizontal proximity to pipe
+    mov eax, esi      ; pipeX
+    sub eax, birdX    ; pipeX - birdX
+    cmp eax, 3
+    jg NoPipeCollision  ; Bird is too far right
+    cmp eax, -1       ; Bird is 2 characters wide
+    jl NoPipeCollision  ; Bird is too far left
+    
+    ; Check vertical collision with pipe gap
+    mov eax, birdY
+    cmp eax, edi      ; Compare birdY with pipeGapY
+    jl PipeCollision  ; Above gap - collision
+    
+    mov eax, birdY
+    add eax, 2        ; Bottom of bird
+    mov ebx, edi
+    add ebx, 8        ; Gap size
+    cmp eax, ebx
+    jg PipeCollision  ; Below gap - collision
+    
+    jmp NoPipeCollision
+    
+PipeCollision:
+    mov gameOver, 1
+    
+NoPipeCollision:
+    ret
+CheckSinglePipeCollision ENDP
+
 DrawGame PROC
     call Clrscr
     
+
+
     ; Draw score (top left - in message area)
     mov dl, 5
     mov dh, 0
@@ -342,7 +451,7 @@ DrawGame PROC
     
     ; Draw instructions (top right - in message area)
     mov eax, screenWidth
-    sub eax, 30
+    sub eax, 35
     cmp eax, 255
     jbe InstXOK
     mov eax, 255
@@ -469,100 +578,85 @@ BirdY3OK:
     ret
 DrawMiniBird ENDP
 
-DrawPipes PROC
-    ; FIX 3: Draw pipes with proper bounds to avoid overlap and respect message area
-    ; Draw pipe 1 (stop 1 row above ground and start after message area)
+; Reusable procedure to draw a single pipe
+; Parameters: pipeX in ESI, pipeGapY in EDI  
+DrawSinglePipe PROC
+    push eax
+    push ebx
+    push ecx
+    push edx
+    push esi
+    push edi
+    
+    ; Calculate where to stop drawing pipes (1 row above ground)
     mov ecx, screenHeight
-    sub ecx, 2  ; Stop 1 row above ground (screenHeight-1 is ground, screenHeight-2 is last pipe row)
+    sub ecx, 2
+    
     cmp ecx, 100
-    jbe PipeHeightOK1
+    jbe PipeHeightOK
     mov ecx, 100
-PipeHeightOK1:
+PipeHeightOK:
+    
     mov eax, MSG_AREA_HEIGHT  ; Start drawing after message area
     
-DrawPipe1Loop:
+DrawPipeLoop:
     push ecx
     push eax
     
     ; Check if this row is in the pipe gap
-    cmp eax, pipe1GapY
-    jl DrawPipe1
-    mov ebx, pipe1GapY
+    cmp eax, edi
+    jl DrawPipe
+    mov ebx, edi
     add ebx, 8
     cmp eax, ebx
-    jg DrawPipe1
-    jmp SkipPipe1
+    jg DrawPipe
+    jmp SkipPipe
     
-DrawPipe1:
-    mov ebx, pipe1X
+DrawPipe:
+    ; Set coordinates for Gotoxy - EXACT COPY OF YOUR WORKING CODE
+    mov ebx, esi  ; pipeX
     cmp ebx, 255
-    jbe Pipe1XOK
+    jbe PipeXOK
     mov ebx, 255
-Pipe1XOK:
+PipeXOK:
     mov dl, bl
     
-    mov ebx, eax
+    mov ebx, eax  ; current row
     cmp ebx, 255
-    jbe Pipe1YOK
+    jbe PipeYOK
     mov ebx, 255
-Pipe1YOK:
+PipeYOK:
     mov dh, bl
     
     call Gotoxy
     mov edx, OFFSET pipeChar
     call WriteString
     
-SkipPipe1:
+SkipPipe:
     pop eax
     pop ecx
     inc eax
-    loop DrawPipe1Loop
+    loop DrawPipeLoop
     
-    ; Draw pipe 2 (stop 1 row above ground and start after message area)
-    mov ecx, screenHeight
-    sub ecx, 2  ; Stop 1 row above ground
-    cmp ecx, 100
-    jbe PipeHeightOK2
-    mov ecx, 100
-PipeHeightOK2:
-    mov eax, MSG_AREA_HEIGHT  ; Start drawing after message area
-    
-DrawPipe2Loop:
-    push ecx
-    push eax
-    
-    cmp eax, pipe2GapY
-    jl DrawPipe2
-    mov ebx, pipe2GapY
-    add ebx, 8
-    cmp eax, ebx
-    jg DrawPipe2
-    jmp SkipPipe2
-    
-DrawPipe2:
-    mov ebx, pipe2X
-    cmp ebx, 255
-    jbe Pipe2XOK
-    mov ebx, 255
-Pipe2XOK:
-    mov dl, bl
-    
-    mov ebx, eax
-    cmp ebx, 255
-    jbe Pipe2YOK
-    mov ebx, 255
-Pipe2YOK:
-    mov dh, bl
-    
-    call Gotoxy
-    mov edx, OFFSET pipeChar
-    call WriteString
-    
-SkipPipe2:
-    pop eax
+    pop edi
+    pop esi
+    pop edx
     pop ecx
-    inc eax
-    loop DrawPipe2Loop
+    pop ebx
+    pop eax
+    ret
+DrawSinglePipe ENDP
+
+DrawPipes PROC
+    ; Draw pipe 1 using reusable procedure
+    mov esi, pipe1X
+    mov edi, pipe1GapY
+    call DrawSinglePipe
+    
+    ; Draw pipe 2 using reusable procedure  
+    mov esi, pipe2X
+    mov edi, pipe2GapY
+    call DrawSinglePipe
     
     ret
 DrawPipes ENDP
