@@ -15,9 +15,13 @@ gameOver DWORD 0
 gamePaused DWORD 0        ; NEW: Pause state variable
 gameRestart DWORD 0
 
-pipeX DWORD ?
-gapTop DWORD ?
-pipeScored DWORD 0   ; 0 = not yet scored, 1 = already scored
+; Pipe management - now an array for multiple pipes
+NUM_PIPES EQU 3
+PIPE_SPACING DWORD ?  ; Distance between pipes
+
+pipeX DWORD NUM_PIPES DUP(?)
+gapTop DWORD NUM_PIPES DUP(?)
+pipeScored DWORD NUM_PIPES DUP(0)   ; Scoring state for each pipe
 
 ; Bird characters
 birdLine1 BYTE "(>", 0
@@ -273,6 +277,15 @@ InitializeScreen PROC
     shr eax, 1
     mov belowCol, eax
 
+        ; === Calculate pipe spacing dynamically (33% of screen width) ===
+    mov eax, screenWidth
+    mov edx, 0
+    imul eax, 33
+    mov ecx, 100
+    div ecx
+    mov PIPE_SPACING, eax
+
+
 
     ret
 InitializeScreen ENDP
@@ -282,7 +295,15 @@ InitializeScreen ENDP
 ResetGame PROC
     mov gameOver, 0
     mov score, 0
+
     ; Bird horizontal position = 30% screen width
+    mov eax, screenWidth
+    mov edx, 0
+    imul eax, 25
+    mov ecx, 100
+    div ecx             ; (MASM-friendly: div expects ecx in some assemblers; if your assembler needs different pattern, keep original)
+    ; If your assembler doesn't support div with ecx like that, keep your original arithmetic.
+    ; For safety: we'll use classic approach:
     mov eax, screenWidth
     mov edx, 0
     imul eax, 25
@@ -297,30 +318,50 @@ ResetGame PROC
     add eax, playableTop
     mov birdY, eax
 
-    ; Pipe horizontal position = right edge - 5
-    mov eax, screenWidth
-    sub eax, 5
-    mov pipeX, eax
+    ; Initialize pipes: set X positions spaced by PIPE_SPACING, set gaps and scored flags
+    mov ecx, NUM_PIPES
+    xor esi, esi             ; index = 0
 
-    call RandomizeGapPosition
+InitPipeLoop:
+    ; pipeX[esi] = 50% screen width + spacing * index
+    mov eax, screenWidth
+    shr eax, 1        ; divide by 2 -> 50%
+    mov ebx, esi
+    imul ebx, PIPE_SPACING
+    add eax, ebx
+    mov [pipeX + esi*4], eax
+
+
+    ; random gapTop for this pipe
+    push esi                 ; preserve index if RandomRange uses registers (optional)
+    call RandomRangeGapForReset
+    pop esi
+    mov [gapTop + esi*4], eax
+
+    ; reset scored flag
+    mov DWORD PTR [pipeScored + esi*4], 0
+
+    inc esi
+    loop InitPipeLoop
+
     ret
 ResetGame ENDP
 
-RandomizeGapPosition PROC
+; helper that returns gap top in EAX (uses playableTop/playableBottom)
+RandomRangeGapForReset PROC
     mov eax, playableBottom
     sub eax, playableTop
     sub eax, 10
     call RandomRange
     add eax, playableTop
-
-    ; Ensure gap is at least 3 rows away from birdY
+    ; ensure minimum distance from bird if needed (optional)
     cmp eax, birdY
-    jl okGap
+    jl ok
     add eax, 3
-okGap:
-    mov gapTop, eax
+
+ok:
     ret
-RandomizeGapPosition ENDP
+RandomRangeGapForReset ENDP
 
 ; ==================== BIRD PHYSICS ====================
 HandleFlap PROC
@@ -350,44 +391,82 @@ ApplyGravityToBird ENDP
 
 ; ==================== PIPE MANAGEMENT ====================
 MovePipesLeft PROC
-    dec pipeX
+    mov ecx, NUM_PIPES
+    xor esi, esi
+MovePipesLeft_Loop:
+    dec DWORD PTR [pipeX + esi*4]
+    inc esi
+    loop MovePipesLeft_Loop
     ret
 MovePipesLeft ENDP
 
 CheckPipeReset PROC
-    mov eax, pipeX
+    mov ecx, NUM_PIPES
+    xor esi, esi
+
+PipeResetLoop:
+    mov eax, [pipeX + esi*4]
     cmp eax, 0
-    jg NoReset
+    jg NextPipeNoReset
 
-    mov eax, screenWidth
-    sub eax, 5
-    mov pipeX, eax
+    ; Find rightmost pipe X to position this one after it
+    ; We'll scan array to find max X
+    mov edi, 0
+    xor ebx, ebx            ; ebx will hold max
+    mov edx, 0
+    mov edx, NUM_PIPES
+    dec edx
+FindRightmost:
+    mov eax, [pipeX + edx*4]
+    cmp eax, ebx
+    jle NotGreater
+    mov ebx, eax
+NotGreater:
+    dec edx
+    jns FindRightmost
 
-    ; Reset score flag for the new pipe
-    mov pipeScored, 0
+    ; ebx = rightmost pipe X
+    add ebx, PIPE_SPACING
+    mov [pipeX + esi*4], ebx
 
-    call RandomizeGapPosition
-NoReset:
+    ; reset scored flag
+    mov DWORD PTR [pipeScored + esi*4], 0
+
+    ; new gap
+    push esi
+    call RandomRangeGapForReset
+    pop esi
+    mov [gapTop + esi*4], eax
+
+NextPipeNoReset:
+    inc esi
+    loop PipeResetLoop
     ret
 CheckPipeReset ENDP
 
+
+
 CheckScore PROC
-    ; Check if bird has passed the pipe AND pipe has not been scored yet
+    mov ecx, NUM_PIPES
+    xor esi, esi
+
+ScoreLoop:
     mov eax, birdX
-    mov ebx, pipeX
-    add ebx, pipeWidth        ; pipe right edge
+    mov ebx, [pipeX + esi*4]
+    add ebx, pipeWidth
     cmp eax, ebx
-    jl NotPassed              ; bird hasn't passed yet
+    jl ScoreSkip
 
-    mov eax, pipeScored
+    mov eax, [pipeScored + esi*4]
     cmp eax, 1
-    je NotPassed              ; already scored
+    je ScoreSkip
 
-    ; Increment score
     inc score
-    mov pipeScored, 1
+    mov DWORD PTR [pipeScored + esi*4], 1
 
-NotPassed:
+ScoreSkip:
+    inc esi
+    loop ScoreLoop
     ret
 CheckScore ENDP
 
@@ -412,35 +491,46 @@ NoGround:
 CheckGroundCollision ENDP
 
 CheckPipeCollision PROC
-    ; Check if birdX is within pipeX .. pipeX+pipeWidth-1
+    mov ecx, NUM_PIPES
+    xor esi, esi
+
+PipeCollisionLoop:
+    ; horizontal check: birdX+2 inside [pipeX, pipeX+pipeWidth-1] ?
     mov eax, birdX
     add eax, 2
-    mov ebx, pipeX
+    mov ebx, [pipeX + esi*4]
     cmp eax, ebx
-    jl NoPipe        ; bird left of pipe, no collision
-    
+    jl NextPipeNoCollision
+
     mov eax, birdX
-    mov ebx, pipeX
+    mov ebx, [pipeX + esi*4]
     add ebx, pipeWidth
     dec ebx
     cmp eax, ebx
-    jge NoPipe       ; bird right of pipe, no collision
+    jge NextPipeNoCollision
 
+    ; vertical check using gapTop[esi]
     mov eax, birdY
-    cmp eax, gapTop
-    jle Hit
-    
+    mov ebx, [gapTop + esi*4]
+    cmp eax, ebx
+    jle HitPipe
+
     mov eax, birdY
     add eax, 2
-    mov ebx, gapTop
+    mov ebx, [gapTop + esi*4]
     add ebx, gapHeight
     cmp eax, ebx
-    jge Hit
-    jmp NoPipe
+    jge HitPipe
 
-Hit:
+    jmp NextPipeNoCollision
+
+HitPipe:
     mov gameOver, 1
-NoPipe:
+    ret
+
+NextPipeNoCollision:
+    inc esi
+    loop PipeCollisionLoop
     ret
 CheckPipeCollision ENDP
 
@@ -545,48 +635,69 @@ DrawBird PROC
 DrawBird ENDP
 
 DrawPipes PROC
+    pushad
+
     mov eax, white + (black * 16)
     call SetTextColor
 
-    mov ecx, gapTop
-    sub ecx, playableTop
-    jle NoTopPipe
-    mov eax, playableTop
-    mov dh, al
-DrawTopPipe:
-    push ecx
-    push edx
-    call DrawSinglePipe
-    pop edx
-    inc dh
-    pop ecx
-    loop DrawTopPipe
-NoTopPipe:
+    mov ecx, NUM_PIPES
+    xor esi, esi
 
-    mov eax, gapTop
+DrawPipes_Loop:
+    mov eax, [pipeX + esi*4] 
+    inc eax
+    mov ebx, screenWidth
+    cmp eax, ebx
+    jge SkipThisPipe      ; skip if off screen right
+
+    ; ===== Draw top section =====
+    mov eax, playableTop
+TopLoop:
+    mov ebx, [gapTop + esi*4]
+    cmp eax, ebx
+    jge DoneTop
+    push eax              ; save current row
+    push esi
+    mov dh, al            ; row
+    mov dl, BYTE PTR [pipeX + esi*4]  ; column start
+    call DrawSinglePipeSegment
+    pop esi
+    pop eax
+    inc eax
+    jmp TopLoop
+DoneTop:
+
+    ; ===== Draw bottom section =====
+    mov eax, [gapTop + esi*4]
     add eax, gapHeight
-    mov ebx, playableBottom
-    sub ebx, eax
-    jle NoBottom
+BottomLoop:
+    cmp eax, playableBottom
+    jge SkipThisPipe
+    push eax
+    push esi
     mov dh, al
-    mov ecx, ebx
-DrawBottom:
-    push ecx
-    push edx
-    call DrawSinglePipe
-    pop edx
-    inc dh
-    pop ecx
-    loop DrawBottom
-NoBottom:
+    mov dl, BYTE PTR [pipeX + esi*4]
+    call DrawSinglePipeSegment
+    pop esi
+    pop eax
+    inc eax
+    jmp BottomLoop
+
+SkipThisPipe:
+    inc esi
+    loop DrawPipes_Loop
+
+    popad
     ret
 DrawPipes ENDP
 
-DrawSinglePipe PROC
-    mov eax, pipeX
+
+DrawSinglePipeSegment PROC
+    pushad
+    mov eax, [pipeX + esi*4]
     mov dl, al
     mov ecx, pipeWidth
-DrawPipeSeg:
+DrawSinglePipeSeg_Loop:
     push ecx
     push edx
     call Gotoxy
@@ -595,9 +706,10 @@ DrawPipeSeg:
     pop edx
     inc dl
     pop ecx
-    loop DrawPipeSeg
+    loop DrawSinglePipeSeg_Loop
+    popad
     ret
-DrawSinglePipe ENDP
+DrawSinglePipeSegment ENDP
 
 DrawGround PROC
     mov eax, brown + (black * 16)
