@@ -9,18 +9,19 @@ INCLUDE Irvine32.inc
 ; ==================== GAME VARIABLES ====================
 birdX DWORD ?
 birdY DWORD ?
-pipeX DWORD ?
-gapTop DWORD ?
 gapHeight DWORD 8
 score DWORD 0
 gameOver DWORD 0
 gamePaused DWORD 0        ; NEW: Pause state variable
+gameRestart DWORD 0
+
+pipeX DWORD ?
+gapTop DWORD ?
 pipeScored DWORD 0   ; 0 = not yet scored, 1 = already scored
 
-
 ; Bird characters
-birdLine1 BYTE " (>", 0
-birdLine2 BYTE " ) ", 0
+birdLine1 BYTE "(>", 0
+birdLine2 BYTE ") ", 0
 
 ; Game elements
 pipeChar BYTE 0DBh, 0
@@ -28,9 +29,12 @@ groundChar BYTE 0CDh, 0
 
 ; Messages
 scoreMsg BYTE "Score: ",0
-gameOverMsg BYTE "GAME OVER! Press any key to continue...",0
+gameOverMsg BYTE "GAME OVER!",0
 instructions BYTE "Press UP ARROW to flap",0
 pauseMsg BYTE "GAME PAUSED! Press 'R' to resume", 0
+
+replayMsg BYTE "Press R to replay or ESC to quit", 0
+
 
 ; Screen dimensions (set at runtime)
 screenWidth DWORD ?
@@ -45,6 +49,10 @@ countdown2 BYTE "~2~",0
 countdown1 BYTE "~1~",0
 goMsg BYTE "GO!",0
 
+belowRow DWORD ?
+belowCol DWORD ?
+
+
 .code
 
 ; ==================== MAIN PROCEDURE ====================
@@ -52,11 +60,9 @@ FlappyBird PROC
     call InitializeScreen
     call ResetGame
     call Clrscr
-    
-    ; Countdown before game starts
     call ShowCountdown
 
-gameLoop:
+MainLoop:
     ; Delay between frames
     mov eax, 80
     call Delay
@@ -80,7 +86,6 @@ gameLoop:
     je Flap
 
 NoInput:
-    ; Apply gravity, collisions, etc.
     call ApplyGravityToBird
     call CheckCollision
     mov eax, gameOver
@@ -94,104 +99,103 @@ NoInput:
     call Delay
 
     call DrawGame
-    jmp gameLoop
+    jmp MainLoop
 
 Flap:
     call HandleFlap
     jmp NoInput
 
-; ---------------- PAUSE ----------------
 DoPause:
-    mov gamePaused, 1
-    call DrawGame  ; Show pause message
-    
-PauseLoop:
-    mov eax, 50
-    call Delay
-    call ReadKey
-    cmp al, 'r'
-    je UnpauseGame
-    cmp al, 'R'
-    je UnpauseGame
-    jmp PauseLoop
+    call PauseGame           ; PauseGame will set gameRestart=0 if ESC pressed
+    mov eax, gameRestart
+    cmp eax, 0
+    je QuitGame              ; if pause requested quit, behave like ESC in main loop
+    jmp MainLoop
 
-UnpauseGame:
-    mov gamePaused, 0
-    ; Show countdown after unpause
-    call ShowCountdown
-    jmp gameLoop
 
 GameOverScreen:
     call DrawGameOver
+    mov eax, gameRestart
+    cmp eax, 1
+    jne QuitGame
+    call ResetGame
+    call Clrscr
+    call ShowCountdown
+    jmp MainLoop
 
 QuitGame:
     ret
 FlappyBird ENDP
 
-; ==================== FANCY COUNTDOWN PROCEDURE ====================
+
+PauseGame PROC
+    pushad
+
+    ; === Show pause message ===
+    mov eax, belowRow
+    mov dh, al
+    mov eax, belowCol
+    sub eax, 18
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET pauseMsg
+    call WriteString
+
+    ; Default: assume resume unless ESC pressed
+    mov gameRestart, 1
+
+WaitResumeOrQuit:
+    call ReadChar
+
+    cmp al, 'r'           ; Resume?
+    je ResumePause
+    cmp al, 'R'
+    je ResumePause
+
+    cmp al, 1Bh           ; ESC = quit to menu
+    je QuitToMenu
+
+    jmp WaitResumeOrQuit
+
+; === Resume the game with countdown ===
+ResumePause:
+    call Clrscr
+    call ShowCountdown
+    popad
+    ret
+
+; === Quit game back to menu (set flag and return) ===
+QuitToMenu:
+    mov gameRestart, 0    ; tell caller: quit to menu
+    popad
+    ret
+PauseGame ENDP
+
+
+
 
 ; ==================== COUNTDOWN DISPLAY ====================
 ShowCountdown PROC
     pushad
 
-    ; --- READY? ---
-    mov ecx, 1                ; blink twice
-ReadyBlink:
-    push ecx
+    ; ===== READY? =====
     call DrawGame
-    mov eax, playableBottom
-    add eax, 2                ; 2 lines below ground
+    mov eax, belowRow
     mov dh, al
-    mov eax, screenWidth
-    shr eax, 1
-    sub eax, 3
+    mov eax, belowCol
+    sub eax, 3                  ; adjust for text width ("READY?")
     mov dl, al
     call Gotoxy
     mov edx, OFFSET readyMsg
     call WriteString
-    mov eax, 300
+    mov eax, 800
     call Delay
 
-    ; Clear line (overwrite with spaces)
-    mov dh, al
-    mov eax, screenWidth
-    shr eax, 1
-    sub eax, 3
-    mov dl, al
-    mov ecx, 6
-ClearReady:
-    mov al, ' '
-    call WriteChar
-    loop ClearReady
-
-    mov eax, 250
-    call Delay
-    pop ecx
-    loop ReadyBlink
-
-    ; Show READY? steady
+    ; ===== 3 =====
     call DrawGame
-    mov eax, playableBottom
-    add eax, 2
+    mov eax, belowRow
     mov dh, al
-    mov eax, screenWidth
-    shr eax, 1
-    sub eax, 3
-    mov dl, al
-    call Gotoxy
-    mov edx, OFFSET readyMsg
-    call WriteString
-    mov eax, 600
-    call Delay
-
-
-    ; --- COUNTDOWN: 3 ---
-    call DrawGame
-    mov eax, playableBottom
-    add eax, 2
-    mov dh, al
-    mov eax, screenWidth
-    shr eax, 1
+    mov eax, belowCol
     mov dl, al
     call Gotoxy
     mov edx, OFFSET countdown3
@@ -199,13 +203,11 @@ ClearReady:
     mov eax, 600
     call Delay
 
-    ; --- COUNTDOWN: 2 ---
+    ; ===== 2 =====
     call DrawGame
-    mov eax, playableBottom
-    add eax, 2
+    mov eax, belowRow
     mov dh, al
-    mov eax, screenWidth
-    shr eax, 1
+    mov eax, belowCol
     mov dl, al
     call Gotoxy
     mov edx, OFFSET countdown2
@@ -213,13 +215,11 @@ ClearReady:
     mov eax, 600
     call Delay
 
-    ; --- COUNTDOWN: 1 ---
+    ; ===== 1 =====
     call DrawGame
-    mov eax, playableBottom
-    add eax, 2
+    mov eax, belowRow
     mov dh, al
-    mov eax, screenWidth
-    shr eax, 1
+    mov eax, belowCol
     mov dl, al
     call Gotoxy
     mov edx, OFFSET countdown1
@@ -227,25 +227,22 @@ ClearReady:
     mov eax, 600
     call Delay
 
-    ; --- GO! ---
+    ; ===== GO! =====
     call DrawGame
-    mov eax, playableBottom
-    add eax, 2
+    mov eax, belowRow
     mov dh, al
-    mov eax, screenWidth
-    shr eax, 1
+    mov eax, belowCol
     sub eax, 1
     mov dl, al
     call Gotoxy
     mov edx, OFFSET goMsg
     call WriteString
-    mov eax, 600
+    mov eax, 700
     call Delay
 
     popad
     ret
 ShowCountdown ENDP
-
 
 ; ==================== INITIALIZATION ====================
 InitializeScreen PROC
@@ -263,6 +260,20 @@ InitializeScreen PROC
     div ecx
     mov playableBottom, eax
 
+    ; ===== Calculate reusable center position (below ground) =====
+    mov eax, screenHeight
+    dec eax                     ; last visible row
+    sub eax, playableBottom     ; height below ground
+    shr eax, 1                  ; half = middle of area
+    add eax, playableBottom
+    add eax, 1
+    mov belowRow, eax
+
+    mov eax, screenWidth
+    shr eax, 1
+    mov belowCol, eax
+
+
     ret
 InitializeScreen ENDP
 
@@ -270,7 +281,6 @@ InitializeScreen ENDP
 ; ==================== GAME SETUP ====================
 ResetGame PROC
     mov gameOver, 0
-    mov gamePaused, 0     ; NEW: Reset pause state
     mov score, 0
     ; Bird horizontal position = 30% screen width
     mov eax, screenWidth
@@ -404,7 +414,7 @@ CheckGroundCollision ENDP
 CheckPipeCollision PROC
     ; Check if birdX is within pipeX .. pipeX+pipeWidth-1
     mov eax, birdX
-    add eax, 3
+    add eax, 2
     mov ebx, pipeX
     cmp eax, ebx
     jl NoPipe        ; bird left of pipe, no collision
@@ -417,16 +427,15 @@ CheckPipeCollision PROC
     jge NoPipe       ; bird right of pipe, no collision
 
     mov eax, birdY
-    dec eax
     cmp eax, gapTop
-    jl Hit
+    jle Hit
     
     mov eax, birdY
-    add eax, 3
+    add eax, 2
     mov ebx, gapTop
     add ebx, gapHeight
     cmp eax, ebx
-    jg Hit
+    jge Hit
     jmp NoPipe
 
 Hit:
@@ -438,13 +447,18 @@ CheckPipeCollision ENDP
 ; ==================== DRAWING ====================
 DrawGame PROC
     pushad
+
+    mov eax, gamePaused
+    cmp eax, 1
+    je SkipClear
     call Clrscr
+SkipClear:
+
     call DrawUI
     call DrawBird
     call DrawPipes
     call DrawGround
     
-    ; Draw pause message if game is paused
     mov eax, gamePaused
     cmp eax, 1
     jne SkipPauseMessage
@@ -455,28 +469,22 @@ SkipPauseMessage:
     ret
 DrawGame ENDP
 
+
 ; Procedure to draw pause message
 DrawPauseMessage PROC
-    mov eax, white + (black * 16)
-    call SetTextColor
-    
-    ; Calculate position for pause message (below ground, centered)
-    mov eax, playableBottom
-    add eax, 2                    ; 2 rows below ground
+    pushad
+    mov eax, belowRow
     mov dh, al
-    mov eax, screenWidth
-    sub eax, 30                   ; Message length is about 30
-    shr eax, 1                    ; Divide by 2 to center
+    mov eax, belowCol
+    sub eax, 18      ; adjust horizontally for text width
     mov dl, al
     call Gotoxy
-    
     mov edx, OFFSET pauseMsg
     call WriteString
-    
-    mov eax, white + (black * 16)
-    call SetTextColor
+    popad
     ret
 DrawPauseMessage ENDP
+
 
 DrawUI PROC
     ; Draw score
@@ -502,7 +510,7 @@ DrawUI PROC
     mov dl, 0
     call Gotoxy
     mov ecx, screenWidth
-    mov al, 0CDh           ; ═ line
+    mov al, 0CDh           ; ? line
 DrawSeparator:
     call WriteChar
     loop DrawSeparator
@@ -611,14 +619,17 @@ DrawGroundLine:
 DrawGround ENDP
 
 DrawGameOver PROC
+    
     call DrawGame
 
+    ; --- Game over message ---
     mov dh, 10
     mov dl, 25
     call Gotoxy
     mov edx, OFFSET gameOverMsg
     call WriteString
 
+    ; --- Show score ---
     mov dh, 12
     mov dl, 30
     call Gotoxy
@@ -627,9 +638,30 @@ DrawGameOver PROC
     mov eax, score
     call WriteDec
 
-loooping:
+    ; --- Replay / Quit instructions ---
+    mov dh, 14
+    mov dl, 20
+    call Gotoxy
+    mov edx, OFFSET replayMsg
+    call WriteString
+
+WaitKeyForRestart:
     call ReadChar
-    jmp loooping
+    cmp al, 'r'              ; Restart?
+    je RestartGame
+    cmp al, 'R'
+    je RestartGame
+  
+    cmp al, 1Bh              ; ESC?
+    je QuitGame
+    jmp WaitKeyForRestart    ; Ignore anything else
+
+RestartGame:
+    mov gameRestart, 1
+    ret
+
+QuitGame:
+    mov gameRestart, 0
     ret
 DrawGameOver ENDP
 
