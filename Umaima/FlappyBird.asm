@@ -495,42 +495,49 @@ CheckPipeCollision PROC
     xor esi, esi
 
 PipeCollisionLoop:
-    ; horizontal check: birdX+2 inside [pipeX, pipeX+pipeWidth-1] ?
+    ; ===== Horizontal check =====
+    ; birdX+2 inside [pipeX, pipeX+pipeWidth-1] ?
     mov eax, birdX
     add eax, 2
     mov ebx, [pipeX + esi*4]
     cmp eax, ebx
-    jl NextPipeNoCollision
+    jl NextPipeNoCollision        ; bird left of pipe
 
     mov eax, birdX
     mov ebx, [pipeX + esi*4]
     add ebx, pipeWidth
     dec ebx
     cmp eax, ebx
-    jge NextPipeNoCollision
+    jge NextPipeNoCollision       ; bird right of pipe
 
-    ; vertical check using gapTop[esi]
+    ; ===== Vertical check =====
+    ; Special case: if gap starts at playableTop, allow ceiling flight
+    mov eax, [gapTop + esi*4]
+    cmp eax, playableTop
+    je SkipTopCheck               ; skip top collision if gap touches ceiling
+
+    ; normal top collision check
     mov eax, birdY
     mov ebx, [gapTop + esi*4]
     cmp eax, ebx
-    jle HitPipe
+    jle HitPipe                    ; bird above gap → hit
 
+SkipTopCheck:
+    ; bottom collision check
     mov eax, birdY
-    add eax, 2
+    add eax, 2                    ; bird’s bottom (bird height = 3)
     mov ebx, [gapTop + esi*4]
     add ebx, gapHeight
     cmp eax, ebx
-    jge HitPipe
-
-    jmp NextPipeNoCollision
-
-HitPipe:
-    mov gameOver, 1
-    ret
+    jge HitPipe                    ; bird below gap → hit
 
 NextPipeNoCollision:
     inc esi
     loop PipeCollisionLoop
+    ret
+
+HitPipe:
+    mov gameOver, 1
     ret
 CheckPipeCollision ENDP
 
