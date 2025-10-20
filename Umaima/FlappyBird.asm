@@ -23,6 +23,41 @@ pipeX DWORD NUM_PIPES DUP(?)
 gapTop DWORD NUM_PIPES DUP(?)
 pipeScored DWORD NUM_PIPES DUP(0)   ; Scoring state for each pipe
 
+
+
+titleMsg    BYTE "~~~ FLAPPY BIRD ~~~",0
+taglineMsg  BYTE "Tap, Flap, and Dodge - Can You Beat Gravity?",0
+instruct1   BYTE "Press UP ARROW to flap your wings!",0
+instruct2   BYTE "P  to pause   |   R  to resume   |   BACKSPACE to quit",0
+instruct3   BYTE "Avoid those pipes... they really don't like you!",0
+instruct4   BYTE "Stay calm. Stay steady. Stay flappy.",0
+instruct5   BYTE "Press P to Start your flight!",0
+instruct6   BYTE "Press BACKSPACE if you wish to return to the menu", 0
+
+quitMsg BYTE "Returning to Menu ",0
+startMsg BYTE "Starting Game ",0
+restartMsg BYTE "Restarting Game ",0
+
+; Confirmation messages
+confirmQuitMsg BYTE "Are you sure you want to quit? (Y/N)",0
+yesNoMsg BYTE "Press Y for Yes, N for No",0
+resumingMsg BYTE "Resuming game ",0
+
+
+centerCol   DWORD ?
+centerRow   DWORD ?
+quit        DWORD 0
+
+; ===== Welcome screen demo animation =====
+demoBirdX DWORD ?
+demoBirdY DWORD ?
+demoPipeX DWORD NUM_PIPES DUP(?)
+demoGapTop DWORD NUM_PIPES DUP(?)
+demoPipeSpeed DWORD 1           ; how fast the demo pipes move left
+
+
+
+
 ; Bird characters
 birdLine1 BYTE "(>", 0
 birdLine2 BYTE ") ", 0
@@ -35,9 +70,9 @@ groundChar BYTE 0CDh, 0
 scoreMsg BYTE "Score: ",0
 gameOverMsg BYTE "GAME OVER!",0
 instructions BYTE "Press UP ARROW to flap",0
-pauseMsg BYTE "GAME PAUSED! Press 'R' to resume", 0
+pauseMsg BYTE "GAME PAUSED! Press 'R' to resume or 'BACKSPACE' to quit", 0
 
-replayMsg BYTE "Press R to replay or ESC to quit", 0
+replayMsg BYTE "Press R to replay or BACKSPACE to quit", 0
 
 
 ; Screen dimensions (set at runtime)
@@ -57,11 +92,22 @@ belowRow DWORD ?
 belowCol DWORD ?
 
 
+boxTop      DWORD ?
+boxLeft     DWORD ?
+boxWidth    DWORD ?
+boxHeight   DWORD ?
+boxRight    DWORD ?
+boxBottom   DWORD ?
+
+
 .code
 
 ; ==================== MAIN PROCEDURE ====================
 FlappyBird PROC
     call InitializeScreen
+    call ShowWelcomeScreen
+    cmp gameRestart, 0
+    je QuitGame
     call ResetGame
     call Clrscr
     call ShowCountdown
@@ -75,9 +121,9 @@ MainLoop:
     call ReadKey
     jz NoInput
 
-    ; ESC to quit
-    cmp al, 1Bh
-    je QuitGame
+    ; BACKSPACE to quit
+    cmp al, 08h
+    je ConfirmQuit
 
     ; Pause handling
     cmp al, 'p'
@@ -105,6 +151,20 @@ NoInput:
     call DrawGame
     jmp MainLoop
 
+ConfirmQuit:
+    call ShowQuitConfirmation
+    cmp gameRestart, 0
+    je QuitGame
+    cmp gameRestart, 2    ; Check if we need to show countdown
+    je ShowCountdownAndResume
+    jmp MainLoop          ; User chose No, continue game
+
+ShowCountdownAndResume:
+    call Clrscr
+    call ShowCountdown
+    jmp MainLoop
+
+
 Flap:
     call HandleFlap
     jmp NoInput
@@ -119,13 +179,39 @@ DoPause:
 
 GameOverScreen:
     call DrawGameOver
+
+WaitForReplayOrQuit:
+    call ReadChar
+
+    cmp al, 'r'
+    je RestartAfterGameOver
+    cmp al, 'R'
+    je RestartAfterGameOver
+
+    cmp al, 08h             ; BACKSPACE = ask for confirmation
+    je AskQuitConfirmation
+
+    jmp WaitForReplayOrQuit
+
+AskQuitConfirmation:
+    call ShowGameOverQuitConfirmation  ; handles Y/N inside itself
+
     mov eax, gameRestart
+    cmp eax, 0
+    je QuitGame             ; user confirmed quit
+
     cmp eax, 1
-    jne QuitGame
+    je WaitForReplayOrQuit  ; user chose No, return to game-over screen
+
+    jmp WaitForReplayOrQuit
+
+
+RestartAfterGameOver:
     call ResetGame
     call Clrscr
     call ShowCountdown
     jmp MainLoop
+
 
 QuitGame:
     ret
@@ -139,7 +225,9 @@ PauseGame PROC
     mov eax, belowRow
     mov dh, al
     mov eax, belowCol
-    sub eax, 18
+    mov ebx, LENGTHOF pauseMsg
+    shr ebx, 1
+    sub eax, ebx
     mov dl, al
     call Gotoxy
     mov edx, OFFSET pauseMsg
@@ -156,10 +244,28 @@ WaitResumeOrQuit:
     cmp al, 'R'
     je ResumePause
 
-    cmp al, 1Bh           ; ESC = quit to menu
-    je QuitToMenu
+    cmp al, 08h           ; BACKSPACE = quit to menu
+    je ConfirmQuitInPause
 
     jmp WaitResumeOrQuit
+
+ConfirmQuitInPause:
+    call ShowQuitConfirmation
+    cmp gameRestart, 0
+    je QuitToMenu
+    cmp gameRestart, 2    ; Check if we need to show countdown
+    je ShowCountdownFromPause
+    ; If we get here, something went wrong - just resume
+    call Clrscr
+    call ShowCountdown
+    popad
+    ret
+
+ShowCountdownFromPause:
+    call Clrscr
+    call ShowCountdown
+    popad
+    ret
 
 ; === Resume the game with countdown ===
 ResumePause:
@@ -175,8 +281,361 @@ QuitToMenu:
     ret
 PauseGame ENDP
 
+; message = OFFSET string, row = DH, col = DL
+; will print message and animate 3 dots
+DotAnimation PROC
+    ; animate three dots
+    mov ecx, 3
+    mov eax, 300        ; 300ms delay
+    call Delay
+    
+DotLoop:
+    ; Write a dot character directly
+    mov al, '.'         ; Use period character
+    call WriteChar
+    
+    mov eax, 300        ; 300ms delay between dots
+    call Delay
+    
+    loop DotLoop
+    
+    mov eax, 300        ; 300ms delay after last dot
+    call Delay
+    
+    ret
+DotAnimation ENDP
 
 
+
+ShowWelcomeScreen PROC
+    pushad
+    call Clrscr
+
+    ; ===== Set colors =====
+    mov eax, yellow + (black * 16)
+    call SetTextColor
+
+    ; ===== Calculate screen center =====
+    mov eax, screenWidth
+    shr eax, 1
+    mov centerCol, eax
+
+    mov eax, playableTop
+    add eax, playableBottom
+    shr eax, 1
+    mov centerRow, eax
+
+
+
+    ; ==========================================================
+    ;                   Display Fun Welcome Text
+    ; ==========================================================
+
+    ; --- Title ---
+    mov ebx, LENGTHOF titleMsg
+    shr ebx, 1
+    mov eax, centerCol
+    sub eax, ebx
+    mov dl, al
+    mov dh, BYTE PTR centerRow
+    sub dh, 8
+    call Gotoxy
+    mov edx, OFFSET titleMsg
+    call WriteString
+
+    ; --- Tagline ---
+    mov ebx, LENGTHOF taglineMsg
+    shr ebx, 1
+    mov eax, centerCol
+    sub eax, ebx
+    mov dl, al
+    mov dh, BYTE PTR centerRow
+    sub dh, 7
+    call Gotoxy
+    mov edx, OFFSET taglineMsg
+    call WriteString
+
+    ; --- Instructions ---
+    mov ebx, LENGTHOF instruct1
+    shr ebx, 1
+    mov eax, centerCol
+    sub eax, ebx
+    mov dl, al
+    mov dh, BYTE PTR centerRow
+    add dh, 4
+    call Gotoxy
+    mov edx, OFFSET instruct1
+    call WriteString
+
+    mov ebx, LENGTHOF instruct2
+    shr ebx, 1
+    mov eax, centerCol
+    sub eax, ebx
+    mov dl, al
+    mov dh, BYTE PTR centerRow
+    add dh, 5
+    call Gotoxy
+    mov edx, OFFSET instruct2
+    call WriteString
+
+    mov ebx, LENGTHOF instruct3
+    shr ebx, 1
+    mov eax, centerCol
+    sub eax, ebx
+    mov dl, al
+    mov dh, BYTE PTR centerRow
+    add dh, 6
+    call Gotoxy
+    mov edx, OFFSET instruct3
+    call WriteString
+
+    mov ebx, LENGTHOF instruct4
+    shr ebx, 1
+    mov eax, centerCol
+    sub eax, ebx
+    mov dl, al
+    mov dh, BYTE PTR centerRow
+    add dh, 7
+    call Gotoxy
+    mov edx, OFFSET instruct4
+    call WriteString
+
+    mov ebx, LENGTHOF instruct5
+    shr ebx, 1
+    mov eax, centerCol
+    sub eax, ebx
+    mov dl, al
+    mov dh, BYTE PTR centerRow
+    add dh, 9
+    call Gotoxy
+    mov edx, OFFSET instruct5
+    call WriteString
+
+    mov ebx, LENGTHOF instruct6
+    shr ebx, 1
+    mov eax, centerCol
+    sub eax, ebx
+    mov dl, al
+    mov dh, BYTE PTR centerRow
+    add dh, 10
+    call Gotoxy
+    mov edx, OFFSET instruct6
+    call WriteString
+
+    ; tiny delay to slow animation
+    mov eax, 50
+    call Delay
+
+    ; ==========================================================
+    ;                     Wait for User Input
+    ; ==========================================================
+WaitKey:
+    call ReadChar
+    cmp al, 'P'
+    je StartGameAnim
+    cmp al, 'p'
+    je StartGameAnim
+    cmp al, 8              ; Backspace
+    je QuitToMenuAnim
+    jmp WaitKey
+
+; === Start game animation & delay ===
+StartGameAnim:
+    mov eax, belowRow
+    mov dh, al
+    mov eax, belowCol
+    mov dl, al
+    sub dl, 10              ; adjust horizontal
+    call Gotoxy
+    mov edx, OFFSET startMsg    ; or "Starting Game"
+    call WriteString
+    call DotAnimation
+    mov quit, 0
+    mov gameRestart, 1
+    jmp Done
+
+; === Quit to menu animation & delay ===
+QuitToMenuAnim:
+    mov eax, belowRow
+    mov dh, al
+    mov eax, belowCol
+    mov dl, al
+    sub dl, 12              ; adjust horizontal
+    call Gotoxy
+    mov edx, OFFSET quitMsg   ; define: "Returning to Menu"
+    call WriteString
+    call DotAnimation
+    mov quit, 1
+    mov gameRestart, 0
+    jmp Done
+
+Done:
+    ; ===== Reset color before returning =====
+    mov eax, white + (black * 16)
+    call SetTextColor
+
+    popad
+    ret
+ShowWelcomeScreen ENDP
+
+
+; ==================== QUIT CONFIRMATION ====================
+ShowQuitConfirmation PROC
+    pushad
+    
+    ; Redraw the game to clear any messages
+    call DrawGame
+    
+    ; Use the below area for messages (below ground)
+    mov eax, belowRow
+    mov dh, al
+    mov eax, belowCol
+    mov ebx, LENGTHOF confirmQuitMsg
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET confirmQuitMsg
+    call WriteString
+    
+    ; Second line for Yes/No instructions
+    mov eax, belowRow
+    inc eax
+    mov dh, al
+    mov eax, belowCol
+    mov ebx, LENGTHOF yesNoMsg
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET yesNoMsg
+    call WriteString
+
+WaitConfirmation:
+    call ReadChar
+    
+    cmp al, 'y'           ; Yes, quit
+    je ConfirmYes
+    cmp al, 'Y'
+    je ConfirmYes
+    
+    cmp al, 'n'           ; No, don't quit
+    je ConfirmNo
+    cmp al, 'N'
+    je ConfirmNo
+    
+    jmp WaitConfirmation
+
+ConfirmYes:
+    ; Show quitting animation in below area
+    call DrawGame
+    mov eax, belowRow
+    mov dh, al
+    mov eax, belowCol
+    mov ebx, LENGTHOF quitMsg
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET quitMsg
+    call WriteString
+    call DotAnimation
+    
+    mov gameRestart, 0    ; Signal to quit
+    jmp DoneConfirmation
+
+ConfirmNo:
+    ; Show resuming message with animation
+    call DrawGame  ; Clear the confirmation screen first
+    mov eax, belowRow
+    mov dh, al
+    mov eax, belowCol
+    mov ebx, LENGTHOF resumingMsg
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET resumingMsg
+    call WriteString
+    call DotAnimation
+    
+    ; Set flag to indicate we need to show countdown
+    mov gameRestart, 2    ; New flag value: 2 = show countdown then resume
+
+DoneConfirmation:
+    popad
+    ret
+ShowQuitConfirmation ENDP
+
+; ==================== GAME OVER QUIT CONFIRMATION ====================
+ShowGameOverQuitConfirmation PROC
+    pushad
+    
+    ; Show confirmation message within game over screen (not in below area)
+    mov eax, boxTop
+    add eax, 9
+    mov dh, al
+    mov eax, boxLeft
+    add eax, boxRight
+    shr eax, 1
+    mov ebx, LENGTHOF confirmQuitMsg
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET confirmQuitMsg
+    call WriteString
+    
+    mov eax, boxTop
+    add eax, 10
+    mov dh, al
+    mov eax, boxLeft
+    add eax, boxRight
+    shr eax, 1
+    mov ebx, LENGTHOF yesNoMsg
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET yesNoMsg
+    call WriteString
+
+WaitConfirmation:
+    call ReadChar
+    
+    cmp al, 'y'           ; Yes, quit
+    je ConfirmYes
+    cmp al, 'Y'
+    je ConfirmYes
+    
+    cmp al, 'n'           ; No, don't quit
+    je ConfirmNo
+    cmp al, 'N'
+    je ConfirmNo
+    
+    jmp WaitConfirmation
+
+ConfirmYes:
+    ; Show quitting message
+    mov dh, 18
+    mov dl, 25
+    call Gotoxy
+    mov edx, OFFSET quitMsg
+    call WriteString
+    call DotAnimation
+    
+    mov gameRestart, 0    ; Signal to quit
+    jmp DoneConfirmation
+
+ConfirmNo:
+    ; For No, just redraw the game over screen (messages will be cleared by redraw)
+    call DrawGameOver
+    mov gameRestart, 1    ; Signal to continue
+
+DoneConfirmation:
+    popad
+    ret
+ShowGameOverQuitConfirmation ENDP
 
 ; ==================== COUNTDOWN DISPLAY ====================
 ShowCountdown PROC
@@ -192,7 +651,7 @@ ShowCountdown PROC
     call Gotoxy
     mov edx, OFFSET readyMsg
     call WriteString
-    mov eax, 800
+    mov eax, 1000
     call Delay
 
     ; ===== 3 =====
@@ -484,7 +943,7 @@ CheckGroundCollision PROC
     mov eax, birdY
     add eax, 2
     cmp eax, playableBottom
-    jl NoGround
+    jle NoGround
     mov gameOver, 1
 NoGround:
     ret
@@ -520,7 +979,7 @@ PipeCollisionLoop:
     mov eax, birdY
     mov ebx, [gapTop + esi*4]
     cmp eax, ebx
-    jle HitPipe                    ; bird above gap → hit
+    jle HitPipe                    ; bird above gap ? hit
 
 SkipTopCheck:
     ; bottom collision check
@@ -529,7 +988,7 @@ SkipTopCheck:
     mov ebx, [gapTop + esi*4]
     add ebx, gapHeight
     cmp eax, ebx
-    jge HitPipe                    ; bird below gap → hit
+    jge HitPipe                    ; bird below gap ? hit
 
 NextPipeNoCollision:
     inc esi
@@ -737,51 +1196,192 @@ DrawGroundLine:
     ret
 DrawGround ENDP
 
-DrawGameOver PROC
-    
-    call DrawGame
 
-    ; --- Game over message ---
-    mov dh, 10
-    mov dl, 25
+DrawGameOver PROC
+    pushad
+
+    ;=============================
+    ;  Setup + Dimensions
+    ;=============================
+    mov eax, screenWidth
+    mov ebx, 60
+    imul eax, ebx
+    cdq
+    mov ebx, 100
+    idiv ebx
+    mov boxWidth, eax         ; 60% of screen width
+
+    mov eax, screenHeight
+    mov ebx, 40
+    imul eax, ebx
+    cdq
+    mov ebx, 100
+    idiv ebx
+    mov boxHeight, eax        ; 40% of screen height
+
+    ; calculate top-left corner
+    mov eax, screenWidth
+    sub eax, boxWidth
+    shr eax, 1
+    mov boxLeft, eax
+
+    mov eax, screenHeight
+    sub eax, boxHeight
+    shr eax, 1
+    mov boxTop, eax
+
+    ; bottom/right edges
+    mov eax, boxTop
+    add eax, boxHeight
+    mov boxBottom, eax
+    mov eax, boxLeft
+    add eax, boxWidth
+    mov boxRight, eax
+
+        ;=============================
+    ;  Fill Box Background (black)
+    ;=============================
+    mov eax, black + (black * 16)
+    call SetTextColor
+
+    mov ecx, boxHeight
+    sub ecx, 2                ; leave border rows alone
+    mov dh, BYTE PTR boxTop
+FillRowLoop:
+        inc dh                ; move to next row (inside box)
+        cmp dh, BYTE PTR boxBottom
+        jge DoneFill
+        mov dl, BYTE PTR boxLeft
+        inc dl                ; inside box, skip left border
+        mov ebx, boxWidth
+        sub ebx, 2            ; skip right border
+    FillColLoop:
+        call Gotoxy
+        mov al, ' '           ; space = black fill
+        call WriteChar
+        inc dl
+        dec ebx
+        jnz FillColLoop
+        loop FillRowLoop
+DoneFill:
+
+
+    ;=============================
+    ;  Box Border Color + Fill
+    ;=============================
+    mov eax, white + (black * 16)
+    call SetTextColor
+
+    ; --- Draw Top Border ---
+    mov dh, BYTE PTR boxTop
+    mov dl, BYTE PTR boxLeft
+    call Gotoxy
+    mov al, '+'
+    call WriteChar
+
+    mov ecx, boxWidth
+    sub ecx, 2
+TopLine:
+        mov al, '-'
+        call WriteChar
+        loop TopLine
+
+    mov al, '+'
+    call WriteChar
+
+    ; --- Draw Sides ---
+    mov ecx, boxHeight
+    sub ecx, 2
+    mov dh, BYTE PTR boxTop
+SideLoop:
+        inc dh
+        mov dl, BYTE PTR boxLeft
+        call Gotoxy
+        mov al, '|'
+        call WriteChar
+
+        mov dl, BYTE PTR boxRight
+        call Gotoxy
+        mov al, '|'
+        call WriteChar
+        loop SideLoop
+
+    ; --- Draw Bottom Border ---
+    mov dh, BYTE PTR boxBottom
+    mov dl, BYTE PTR boxLeft
+    call Gotoxy
+    mov al, '+'
+    call WriteChar
+    mov ecx, boxWidth
+    sub ecx, 2
+BottomLine:
+        mov al, '-'
+        call WriteChar
+        loop BottomLine
+    mov al, '+'
+    call WriteChar
+
+    ;=============================
+    ;  Centered Text Inside Box
+    ;=============================
+    mov eax, yellow + (black * 16)
+    call SetTextColor
+
+    ; Calculate message start positions
+    mov eax, boxTop
+    add eax, 2
+    mov dh, al
+
+    mov eax, boxLeft
+    add eax, boxRight
+    shr eax, 1
+    mov ebx, LENGTHOF gameOverMsg
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
     call Gotoxy
     mov edx, OFFSET gameOverMsg
     call WriteString
 
-    ; --- Show score ---
-    mov dh, 12
-    mov dl, 30
+    mov eax, white + (black * 16)
+    call SetTextColor
+
+    mov eax, boxTop
+    add eax, 5
+    mov dh, al
+    mov eax, boxLeft
+    add eax, boxRight
+    shr eax, 1
+    mov ebx, LENGTHOF scoreMsg
+    shr ebx, 1
+    sub eax, ebx
+    dec eax
+    mov dl, al
     call Gotoxy
     mov edx, OFFSET scoreMsg
     call WriteString
     mov eax, score
     call WriteDec
 
-    ; --- Replay / Quit instructions ---
-    mov dh, 14
-    mov dl, 20
+    mov eax, boxTop
+    add eax, 6
+    mov dh, al
+    mov eax, boxLeft
+    add eax, boxRight
+    shr eax, 1
+    mov ebx, LENGTHOF replayMsg
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
     call Gotoxy
     mov edx, OFFSET replayMsg
     call WriteString
 
-WaitKeyForRestart:
-    call ReadChar
-    cmp al, 'r'              ; Restart?
-    je RestartGame
-    cmp al, 'R'
-    je RestartGame
-  
-    cmp al, 1Bh              ; ESC?
-    je QuitGame
-    jmp WaitKeyForRestart    ; Ignore anything else
 
-RestartGame:
-    mov gameRestart, 1
-    ret
-
-QuitGame:
-    mov gameRestart, 0
+    popad
     ret
 DrawGameOver ENDP
+
+
 
 END
