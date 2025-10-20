@@ -56,8 +56,6 @@ demoGapTop DWORD NUM_PIPES DUP(?)
 demoPipeSpeed DWORD 1           ; how fast the demo pipes move left
 
 
-
-
 ; Bird characters
 birdLine1 BYTE "(>", 0
 birdLine2 BYTE ") ", 0
@@ -65,6 +63,8 @@ birdLine2 BYTE ") ", 0
 ; Game elements
 pipeChar BYTE 0DBh, 0
 groundChar BYTE 0CDh, 0
+
+sideBarStr BYTE "||", 0
 
 ; Messages
 scoreMsg BYTE "Score: ",0
@@ -616,9 +616,17 @@ WaitConfirmation:
     jmp WaitConfirmation
 
 ConfirmYes:
-    ; Show quitting message
-    mov dh, 18
-    mov dl, 25
+    call DrawGameOver
+    mov eax, boxTop
+    add eax, 10
+    mov dh, al
+    mov eax, boxLeft
+    add eax, boxRight
+    shr eax, 1
+    mov ebx, LENGTHOF quitMsg
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
     call Gotoxy
     mov edx, OFFSET quitMsg
     call WriteString
@@ -1238,14 +1246,14 @@ DrawGameOver PROC
     add eax, boxWidth
     mov boxRight, eax
 
-        ;=============================
+    ;=============================
     ;  Fill Box Background (black)
     ;=============================
     mov eax, black + (black * 16)
     call SetTextColor
 
     mov ecx, boxHeight
-    sub ecx, 2                ; leave border rows alone
+    ; sub ecx, 2                ; leave border rows alone
     mov dh, BYTE PTR boxTop
 FillRowLoop:
         inc dh                ; move to next row (inside box)
@@ -1254,7 +1262,7 @@ FillRowLoop:
         mov dl, BYTE PTR boxLeft
         inc dl                ; inside box, skip left border
         mov ebx, boxWidth
-        sub ebx, 2            ; skip right border
+        ; sub ebx, 2            ; skip right border
     FillColLoop:
         call Gotoxy
         mov al, ' '           ; space = black fill
@@ -1266,60 +1274,69 @@ FillRowLoop:
 DoneFill:
 
 
-    ;=============================
-    ;  Box Border Color + Fill
-    ;=============================
-    mov eax, white + (black * 16)
-    call SetTextColor
+    ; ===== Set border color =====
+mov eax, white + (black * 16)
+call SetTextColor
 
-    ; --- Draw Top Border ---
-    mov dh, BYTE PTR boxTop
-    mov dl, BYTE PTR boxLeft
-    call Gotoxy
-    mov al, '+'
-    call WriteChar
+; --- Draw Top Border ---
+mov dh, BYTE PTR boxTop
+mov dl, BYTE PTR boxLeft
+call Gotoxy
+mov al, '='
+call WriteChar
 
-    mov ecx, boxWidth
-    sub ecx, 2
+mov ecx, boxWidth
+sub ecx, 2
 TopLine:
-        mov al, '-'
-        call WriteChar
-        loop TopLine
-
-    mov al, '+'
+    mov al, '='
     call WriteChar
+    loop TopLine
+mov al, '='
+call WriteChar
 
-    ; --- Draw Sides ---
-    mov ecx, boxHeight
-    sub ecx, 2
-    mov dh, BYTE PTR boxTop
+; --- Draw Sides (clean double-bar look) ---
+mov ecx, boxHeight
+sub ecx, 1
+mov dh, BYTE PTR boxTop
 SideLoop:
-        inc dh
-        mov dl, BYTE PTR boxLeft
-        call Gotoxy
-        mov al, '|'
-        call WriteChar
-
-        mov dl, BYTE PTR boxRight
-        call Gotoxy
-        mov al, '|'
-        call WriteChar
-        loop SideLoop
-
-    ; --- Draw Bottom Border ---
-    mov dh, BYTE PTR boxBottom
+    inc dh                        ; move down one row
+    
+    ; Left border
     mov dl, BYTE PTR boxLeft
     call Gotoxy
-    mov al, '+'
+    mov al, '|'
     call WriteChar
-    mov ecx, boxWidth
-    sub ecx, 2
+    mov al, '|'
+    call WriteChar
+
+    ; Right border
+    mov dl, BYTE PTR boxRight
+    sub dl, 1                     ; shift slightly left to fit inside box
+    call Gotoxy
+    mov al, '|'
+    call WriteChar
+    mov al, '|'
+    call WriteChar
+
+    loop SideLoop
+
+
+; --- Draw Bottom Border ---
+mov dh, BYTE PTR boxBottom
+mov dl, BYTE PTR boxLeft
+call Gotoxy
+mov al, '='
+call WriteChar
+
+mov ecx, boxWidth
+sub ecx, 2
 BottomLine:
-        mov al, '-'
-        call WriteChar
-        loop BottomLine
-    mov al, '+'
+    mov al, '='
     call WriteChar
+    loop BottomLine
+mov al, '='
+call WriteChar
+
 
     ;=============================
     ;  Centered Text Inside Box
@@ -1364,7 +1381,7 @@ BottomLine:
     call WriteDec
 
     mov eax, boxTop
-    add eax, 6
+    add eax, 7
     mov dh, al
     mov eax, boxLeft
     add eax, boxRight
