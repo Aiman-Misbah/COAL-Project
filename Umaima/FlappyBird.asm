@@ -23,9 +23,42 @@ pipeX DWORD NUM_PIPES DUP(?)
 gapTop DWORD NUM_PIPES DUP(?)
 pipeScored DWORD NUM_PIPES DUP(0)   ; Scoring state for each pipe
 
+; FLAPPY BIRD Block Art (using ASCII 219 for blocks)
 
 
-titleMsg    BYTE "~~~ FLAPPY BIRD ~~~",0
+blk EQU 219
+spc EQU 32
+trc EQU 187
+tlc EQU 201
+blc EQU 200
+brc EQU 188
+vl EQU 186
+hl EQU 205
+
+
+FLAPPY_ROW1_P1 BYTE blk,blk,blk,blk,blk,blk,blk,trc,   blk,blk,trc,spc,spc,spc,spc,spc,spc,	blk,blk,blk,blk,blk,trc,spc,		blk,blk,blk,blk,blk,blk,trc,spc,	blk,blk,blk,blk,blk,blk,trc,spc,0
+FLAPPY_ROW1_P2 BYTE blk,blk,trc,spc,spc,spc,blk,blk,trc,0
+FLAPPY_ROW2_P1 BYTE blk,blk,tlc,hl,hl,hl,hl,brc,       blk,blk,vl,spc,spc,spc,spc,spc,         blk,blk,tlc,hl,hl,blk,blk,trc,	blk,blk,tlc,hl,hl,blk,blk,trc,		blk,blk,tlc,hl,hl,blk,blk,trc,0
+FLAPPY_ROW2_P2 BYTE spc,blk,blk,trc,spc,blk,blk,tlc,brc,0
+FLAPPY_ROW3_P1 BYTE blk,blk,blk,blk,blk,trc,spc,spc,   blk,blk,vl,spc,spc,spc,spc,spc,         blk,blk,blk,blk,blk,blk,blk,vl,	blk,blk,blk,blk,blk,blk,tlc,brc,	blk,blk,blk,blk,blk,blk,tlc,brc,spc,0
+FLAPPY_ROW3_P2 BYTE spc,blk,blk,blk,blk,tlc,brc,spc,0
+FLAPPY_ROW4_P1 BYTE blk,blk,tlc,hl,hl,brc,spc,spc,     blk,blk,vl,spc,spc,spc,spc,spc,         blk,blk,tlc,hl,hl,blk,blk,vl,	blk,blk,tlc,hl,hl,hl,brc,spc,		blk,blk,tlc,hl,hl,hl,brc,spc,spc,spc,0
+FLAPPY_ROW4_P2 BYTE spc,blk,blk,tlc,brc,spc,spc,0
+FLAPPY_ROW5_P1 BYTE blk,blk,vl,spc,spc,spc,spc,spc,    blk,blk,blk,blk,blk,blk,blk,trc,        blk,blk,vl,spc,spc,blk,blk,vl,	blk,blk,vl,spc,spc,spc,spc,spc,		blk,blk,vl,spc,spc,spc,spc,spc,spc,spc,spc,0
+FLAPPY_ROW5_P2 BYTE blk,blk,vl,spc,spc,spc,0
+FLAPPY_ROW6_P1 BYTE blc,hl,brc,spc,spc,spc,spc,spc,    blc,hl,hl,hl,hl,hl,hl,brc,              blc,hl,brc,spc,spc,blc,hl,brc,	blc,hl,brc,spc,spc,spc,spc,spc,		blc,hl,brc,spc,spc,spc,spc,spc,spc,spc,0
+FLAPPY_ROW6_P2 BYTE spc,blc,hl,brc,spc,spc,spc,0
+
+BIRD_ROW1   BYTE spc,spc,spc,spc,blk,blk,blk,blk,blk,blk,trc,spc,	blk,blk,trc,	blk,blk,blk,blk,blk,blk,trc,spc,	blk,blk,blk,blk,blk,blk,trc,spc,spc,0
+BIRD_ROW2   BYTE spc,spc,spc,spc,blk,blk,tlc,hl,hl,blk,blk,trc,		blk,blk,vl,		blk,blk,tlc,hl,hl,blk,blk,trc,		blk,blk,tlc,hl,hl,blk,blk,trc,spc,0
+BIRD_ROW3   BYTE spc,spc,spc,spc,blk,blk,blk,blk,blk,blk,tlc,brc,	blk,blk,vl,		blk,blk,blk,blk,blk,blk,tlc,brc,	blk,blk,vl,spc,spc,spc,blk,blk,trc,0
+BIRD_ROW4   BYTE spc,spc,spc,spc,blk,blk,tlc,hl,hl,blk,blk,trc,		blk,blk,vl,		blk,blk,tlc,hl,hl,blk,blk,trc,		blk,blk,vl,spc,spc,blk,blk,tlc,brc,0
+BIRD_ROW5   BYTE spc,spc,spc,spc,blk,blk,blk,blk,blk,blk,tlc,brc,	blk,blk,vl,		blk,blk,vl,spc,spc,blk,blk,vl,		blk,blk,blk,blk,blk,blk,tlc,brc,spc,0
+BIRD_ROW6   BYTE spc,spc,spc,spc,blc,hl,hl,hl,hl,hl,brc,spc, 		blc,hl,brc,		blc,hl,brc,spc,spc,blc,hl,brc,		blc,hl,hl,hl,hl,hl,brc,spc,spc,0
+
+
+
+
 taglineMsg  BYTE "Tap, Flap, and Dodge - Can You Beat Gravity?",0
 instruct1   BYTE "Press UP ARROW to flap your wings!",0
 instruct2   BYTE "P  to pause   |   R  to resume   |   BACKSPACE to quit",0
@@ -48,28 +81,19 @@ centerCol   DWORD ?
 centerRow   DWORD ?
 quit        DWORD 0
 
-; ===== Welcome screen demo animation =====
-demoBirdX DWORD ?
-demoBirdY DWORD ?
-demoPipeX DWORD NUM_PIPES DUP(?)
-demoGapTop DWORD NUM_PIPES DUP(?)
-demoPipeSpeed DWORD 1           ; how fast the demo pipes move left
-
-
 ; Bird characters
 birdLine1 BYTE "(>", 0
 birdLine2 BYTE ") ", 0
 
 ; Game elements
 pipeChar BYTE 0DBh, 0
-groundChar BYTE 0CDh, 0
 
-sideBarStr BYTE "||", 0
+
 
 ; Messages
 scoreMsg BYTE "Score: ",0
 gameOverMsg BYTE "GAME OVER!",0
-instructions BYTE "Press UP ARROW to flap",0
+instructions BYTE "--FLAPPY BIRD--",0
 pauseMsg BYTE "GAME PAUSED! Press 'R' to resume or 'BACKSPACE' to quit", 0
 
 replayMsg BYTE "Press R to replay or BACKSPACE to quit", 0
@@ -114,7 +138,7 @@ FlappyBird PROC
 
 MainLoop:
     ; Delay between frames
-    mov eax, 80
+    mov eax, 50
     call Delay
 
     ; Read key (non-blocking)
@@ -145,7 +169,7 @@ NoInput:
     call MovePipesLeft
     call CheckPipeReset
     call CheckScore
-    mov eax, 10
+    mov eax, 5
     call Delay
 
     call DrawGame
@@ -207,6 +231,20 @@ AskQuitConfirmation:
 
 
 RestartAfterGameOver:
+     mov eax, boxTop
+    add eax, 10    ; Position below the replay message (row 8)
+    mov dh, al
+    mov eax, boxLeft
+    add eax, boxRight
+    shr eax, 1
+    mov ebx, LENGTHOF restartMsg
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET restartMsg
+    call WriteString
+    call DotAnimation
     call ResetGame
     call Clrscr
     call ShowCountdown
@@ -332,15 +370,132 @@ ShowWelcomeScreen PROC
     ; ==========================================================
 
     ; --- Title ---
-    mov ebx, LENGTHOF titleMsg
-    shr ebx, 1
-    mov eax, centerCol
-    sub eax, ebx
-    mov dl, al
+    ; --- Display FLAPPY ---
     mov dh, BYTE PTR centerRow
     sub dh, 8
+    mov eax, centerCol
+    mov ebx, LENGTHOF FLAPPY_ROW1_P1
+    shr ebx, 1
+    sub eax, 43  ; Half the width of FLAPPY text
+    mov dl, al
     call Gotoxy
-    mov edx, OFFSET titleMsg
+    mov edx, OFFSET FLAPPY_ROW1_P1
+    call WriteString
+    mov edx, OFFSET FLAPPY_ROW1_P2
+    call WriteString
+
+    mov dh, BYTE PTR centerRow
+    sub dh, 7
+    mov eax, centerCol
+    sub eax, 43
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET FLAPPY_ROW2_P1
+    call WriteString
+    mov edx, OFFSET FLAPPY_ROW2_P2
+    call WriteString
+
+
+
+    mov dh, BYTE PTR centerRow
+    sub dh, 6
+    mov eax, centerCol
+    sub eax, 43
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET FLAPPY_ROW3_P1
+    call WriteString
+    mov edx, OFFSET FLAPPY_ROW3_P2
+    call WriteString
+
+
+    mov dh, BYTE PTR centerRow
+    sub dh, 5
+    mov eax, centerCol
+    sub eax, 43
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET FLAPPY_ROW4_P1
+    call WriteString
+    mov edx, OFFSET FLAPPY_ROW4_P2
+    call WriteString
+
+    mov dh, BYTE PTR centerRow
+    sub dh, 4
+    mov eax, centerCol
+    sub eax, 43
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET FLAPPY_ROW5_P1
+    call WriteString
+    mov edx, OFFSET FLAPPY_ROW5_P2
+    call WriteString
+
+
+    mov dh, BYTE PTR centerRow
+    sub dh, 3
+    mov eax, centerCol
+    sub eax, 43
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET FLAPPY_ROW6_P1
+    call WriteString
+    mov edx, OFFSET FLAPPY_ROW6_P2
+    call WriteString
+
+    ; --- Display BIRD ---
+    mov dh, BYTE PTR centerRow
+    sub dh, 8
+    mov eax, centerCol
+    add eax, 10  ; Position BIRD to the right of FLAPPY
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET BIRD_ROW1
+    call WriteString
+
+    mov dh, BYTE PTR centerRow
+    sub dh, 7
+    mov eax, centerCol
+    add eax, 10
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET BIRD_ROW2
+    call WriteString
+
+    mov dh, BYTE PTR centerRow
+    sub dh, 6
+    mov eax, centerCol
+    add eax, 10
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET BIRD_ROW3
+    call WriteString
+
+    mov dh, BYTE PTR centerRow
+    sub dh, 5
+    mov eax, centerCol
+    add eax, 10
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET BIRD_ROW4
+    call WriteString
+
+    mov dh, BYTE PTR centerRow
+    sub dh, 4
+    mov eax, centerCol
+    add eax, 10
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET BIRD_ROW5
+    call WriteString
+
+    mov dh, BYTE PTR centerRow
+    sub dh, 3
+    mov eax, centerCol
+    add eax, 10
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET BIRD_ROW6
     call WriteString
 
     ; --- Tagline ---
@@ -350,7 +505,7 @@ ShowWelcomeScreen PROC
     sub eax, ebx
     mov dl, al
     mov dh, BYTE PTR centerRow
-    sub dh, 7
+       
     call Gotoxy
     mov edx, OFFSET taglineMsg
     call WriteString
@@ -987,7 +1142,7 @@ PipeCollisionLoop:
     mov eax, birdY
     mov ebx, [gapTop + esi*4]
     cmp eax, ebx
-    jle HitPipe                    ; bird above gap ? hit
+    jl HitPipe                    ; bird above gap ? hit
 
 SkipTopCheck:
     ; bottom collision check
@@ -1053,7 +1208,7 @@ DrawPauseMessage ENDP
 DrawUI PROC
     ; Draw score
     mov dh, 0
-    mov dl, 0
+    mov dl, 2
     call Gotoxy
     mov edx, OFFSET scoreMsg
     call WriteString
@@ -1062,7 +1217,11 @@ DrawUI PROC
 
     ; Draw instructions
     mov dh, 0
-    mov dl, 45
+    mov eax, centerCol
+    mov ebx, LENGTHOF instructions
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
     call Gotoxy
     mov edx, OFFSET instructions
     call WriteString
@@ -1398,7 +1557,6 @@ call WriteChar
     popad
     ret
 DrawGameOver ENDP
-
 
 
 END
