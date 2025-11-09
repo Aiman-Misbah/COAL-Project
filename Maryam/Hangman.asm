@@ -2,69 +2,87 @@ INCLUDE Irvine32.inc
 
 .data
 ; Hangman visual stages (larger ASCII art)
-hangman0 BYTE "    _______",0dh,0ah
-         BYTE "   |/      |",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "___|___",0
 
-hangman1 BYTE "    _______",0dh,0ah
-         BYTE "   |/      |",0dh,0ah
-         BYTE "   |      ( )",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "___|___",0
+blk EQU 219
+spc EQU 32
+trc EQU 187
+tlc EQU 201
+blc EQU 200
+brc EQU 188
+vl EQU 186
+hl EQU 205
 
-hangman2 BYTE "    _______",0dh,0ah
-         BYTE "   |/      |",0dh,0ah
-         BYTE "   |      ( )",0dh,0ah
-         BYTE "   |       |",0dh,0ah
-         BYTE "   |       |",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "___|___",0
+blk EQU 219
+spc EQU 32
+trc EQU 187
+tlc EQU 201
+blc EQU 200
+brc EQU 188
+vl EQU 186
+hl EQU 205
 
-hangman3 BYTE "    _______",0dh,0ah
-         BYTE "   |/      |",0dh,0ah
-         BYTE "   |      ( )",0dh,0ah
-         BYTE "   |      \|",0dh,0ah
-         BYTE "   |       |",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "___|___",0
+hangman0 BYTE spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
 
-hangman4 BYTE "    _______",0dh,0ah
-         BYTE "   |/      |",0dh,0ah
-         BYTE "   |      ( )",0dh,0ah
-         BYTE "   |      \|/",0dh,0ah
-         BYTE "   |       |",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "___|___",0
+hangman1 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,"O",0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
 
-hangman5 BYTE "    _______",0dh,0ah
-         BYTE "   |/      |",0dh,0ah
-         BYTE "   |      ( )",0dh,0ah
-         BYTE "   |      \|/",0dh,0ah
-         BYTE "   |       |",0dh,0ah
-         BYTE "   |      /",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "___|___",0
+hangman2 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,"O",0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
 
-hangman6 BYTE "    _______",0dh,0ah
-         BYTE "   |/      |",0dh,0ah
-         BYTE "   |      ( )",0dh,0ah
-         BYTE "   |      \|/",0dh,0ah
-         BYTE "   |       |",0dh,0ah
-         BYTE "   |      / \",0dh,0ah
-         BYTE "   |",0dh,0ah
-         BYTE "___|___",0
+hangman3 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,"O",0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,"/","|",0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
 
+hangman4 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,"O",0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,"/","|","\",0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
+
+hangman5 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,"O",0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,"/","|","\",0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,"/",0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
+
+hangman6 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,"O",0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,"/","|","\",0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,"/"," ","\",0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
 hangman_stages DWORD hangman0, hangman1, hangman2, hangman3, hangman4, hangman5, hangman6
 
 ; Game variables
@@ -198,22 +216,53 @@ CopyLoop:
 SelectRandomWord ENDP
 
 DisplayHangman PROC
+    pushad
+
     mov eax, hangman_color
     call SetTextColor
-    ; Center the hangman perfectly
-    mov dh, 5
-    mov dl, 30
+
+    ; ========== Calculate start position ==========
+    mov dh, 5            ; top row where hangman starts
+    mov dl, 40           ; center X column (adjust 40 if needed)
     call Gotoxy
-    
-    ; Get the right hangman stage based on mistakes
+
+    ; ========== Get correct hangman stage ==========
     movzx eax, mistakes
-    mov ebx, 4
-    mul ebx
-    mov esi, hangman_stages[eax]
-    mov edx, esi
-    call WriteString
+    mov esi, hangman_stages[eax*4] ; pointer to stage string
+
+NextChar:
+    mov al, [esi]
+    cmp al, 0
+    je Done
+
+    cmp al, 0Dh
+    je NewLine
+    call WriteChar
+    jmp Continue
+
+NewLine:
+    ; Skip CR LF
+    inc esi
+    mov al, [esi]
+    cmp al, 0Ah
+    jne Continue
+    inc esi
+
+    ; Move to next row center
+    inc dh
+    mov dl, 40
+    call Gotoxy
+    jmp Continue
+
+Continue:
+    inc esi
+    jmp NextChar
+
+Done:
+    popad
     ret
 DisplayHangman ENDP
+
 
 DisplayWordLines PROC
     mov eax, word_color
