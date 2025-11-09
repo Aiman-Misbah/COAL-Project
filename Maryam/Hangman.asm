@@ -1,89 +1,106 @@
 INCLUDE Irvine32.inc
 
 .data
-; Hangman visual stages (larger ASCII art)
-
-blk EQU 219
+; Hangman visual stages
 spc EQU 32
 trc EQU 187
 tlc EQU 201
 blc EQU 200
-brc EQU 188
 vl EQU 186
 hl EQU 205
 
-blk EQU 219
-spc EQU 32
-trc EQU 187
-tlc EQU 201
-blc EQU 200
-brc EQU 188
-vl EQU 186
-hl EQU 205
+screen_width DWORD ?
+screen_height DWORD ?
+center_col DWORD ?
+center_row DWORD ?
+word_start_col DWORD ?
 
-hangman0 BYTE spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
+hangman0 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
          BYTE spc,spc,vl,0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
 
 hangman1 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"O",0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
 
 hangman2 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"O",0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
 
 hangman3 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"O",0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,"/","|",0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
 
 hangman4 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"O",0dh,0ah
-         BYTE spc,spc,vl,spc,spc,spc,"/","|","\",0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,"/","|","\",0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
 
 hangman5 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"O",0dh,0ah
-         BYTE spc,spc,vl,spc,spc,spc,"/","|","\",0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,"/","|","\",0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,"/",0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
 
 hangman6 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"O",0dh,0ah
-         BYTE spc,spc,vl,spc,spc,spc,"/","|","\",0dh,0ah
-         BYTE spc,spc,vl,spc,spc,spc,"/"," ","\",0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
-         BYTE spc,spc,vl,0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,"/","|","\",0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
+         BYTE spc,spc,vl,spc,spc,spc,spc,"/"," ","\",0dh,0ah
+         BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
+
 hangman_stages DWORD hangman0, hangman1, hangman2, hangman3, hangman4, hangman5, hangman6
+
+; Welcome screen content
+welcome_title1 BYTE "  _    _    _    _    _    _    _    _  ",0
+welcome_title2 BYTE " / \  / \  / \  / \  / \  / \  / \  / \ ",0
+welcome_title3 BYTE "( H )( A )( N )( G )( M )( A )( N )( ! )",0
+welcome_title4 BYTE " \_/  \_/  \_/  \_/  \_/  \_/  \_/  \_/ ",0
+
+welcome_msg1   BYTE "WELCOME, BRAVE GUESSER!",0
+welcome_msg2   BYTE "Ready to save a virtual life?",0
+welcome_msg3   BYTE "Guess the word before the stick figure meets its doom!",0
+
+menu_option1   BYTE "[1] - PLAY GAME",0
+menu_option2   BYTE "[2] - INSTRUCTIONS",0
+menu_option3   BYTE "[3] - RETURN TO MAIN MENU",0
+
+instructions1  BYTE "=== HOW TO PLAY ===",0
+instructions2  BYTE "1. Guess letters one at a time",0
+instructions3  BYTE "2. Each wrong guess adds a body part to the hangman",0
+instructions4  BYTE "3. 6 wrong guesses and... GAME OVER!",0
+instructions5  BYTE "4. Guess all letters correctly to WIN!",0
+
+press_key_msg  BYTE "Press BACKSPACE to go back",0
 
 ; Game variables
 mistakes    BYTE 0
@@ -102,49 +119,352 @@ word8 BYTE "SOFTWARE",0
 word_list DWORD OFFSET word1, OFFSET word2, OFFSET word3, OFFSET word4, OFFSET word5, OFFSET word6, OFFSET word7, OFFSET word8
 word_count = 8
 
-str_word BYTE 20 DUP(0)  ; Buffer for current word
+str_word BYTE 20 DUP(0)
+str_word_msg BYTE "The word was: ",0
 
 ; Messages
-msg_restart     BYTE "PRESS ANY KEY TO CONTINUE",0
+msg_restart     BYTE "Press [R] to Replay or [M] for Menu",0
 msg_won         BYTE "CONGRATULATIONS! YOU WON!",0
 msg_lost        BYTE "GAME OVER! YOU LOSE!",0
 already_guessed BYTE "ALREADY GUESSED!",0
-invalid_char    BYTE "INVALID CHARACTER!",0
 msg_top         BYTE "=== HANGMAN GAME ===",0
 prompt_msg      BYTE "Enter your guess: ",0
 wrong_msg       BYTE "Incorrect! Try again.",0
 correct_msg     BYTE "Correct guess!",0
 attempts_msg    BYTE "Lives remaining: ",0
 
-; Alphabet for validation
-alphabet_validation BYTE "ABCDEFGHIJKLMNOPQRSTUVWXYZ",0
 str_guess BYTE 26 DUP(0)
 
-; Colors - More varied colors
+; Colors
 title_color     DWORD lightcyan + (blue * 16)
 hangman_color   DWORD white + (black * 16)
 word_color      DWORD yellow + (black * 16)
-prompt_color    DWORD lightgreen + (black * 16)
+prompt_color    DWORD white + (black * 16)
 correct_color   DWORD lightgreen + (black * 16)
 wrong_color     DWORD lightred + (black * 16)
 win_color       DWORD lightmagenta + (black * 16)
 lose_color      DWORD lightred + (black * 16)
 attempts_color  DWORD lightblue + (black * 16)
 already_color   DWORD brown + (black * 16)
+welcome_color   DWORD lightred + (black * 16)
+menu_color      DWORD lightgreen + (black * 16)
+instructions_color DWORD lightblue + (black * 16)
 
 .code
+
 Hangman PROC
-    call Clrscr
-    call InitializeGame
-    call GameLoop
+    call InitializeScreenForSize
+    call HangmanMenu
     ret
 Hangman ENDP
+
+HangmanMenu PROC
+MenuLoop:
+    call Clrscr
+    call DisplayWelcomeScreen
+    call DisplayMenuOptions
+    
+    call ReadChar
+    
+    cmp al, '1'
+    je PlayGame
+    cmp al, '2'
+    je ShowInstructions
+    cmp al, '3'
+    je ReturnToMain
+    jmp MenuLoop
+
+PlayGame:
+    call PlayHangmanGame
+    jmp ReturnToMain
+
+ShowInstructions:
+    call DisplayInstructions
+    jmp MenuLoop
+
+ReturnToMain:
+    mov eax, white + (black * 16)
+    call SetTextColor
+    ret
+HangmanMenu ENDP
+
+DisplayWelcomeScreen PROC
+    mov eax, welcome_color
+    call SetTextColor
+    
+    mov dh, 3
+    mov eax, center_col
+    mov ebx, LENGTHOF welcome_title1
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET welcome_title1
+    call WriteString
+    
+    mov dh, 4
+    mov eax, center_col
+    mov ebx, LENGTHOF welcome_title2
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET welcome_title2
+    call WriteString
+    
+    mov dh, 5
+    mov eax, center_col
+    mov ebx, LENGTHOF welcome_title3
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET welcome_title3
+    call WriteString
+    
+    mov dh, 6
+    mov eax, center_col
+    mov ebx, LENGTHOF welcome_title4
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET welcome_title4
+    call WriteString
+    
+    mov eax, menu_color
+    call SetTextColor
+    
+    mov dh, 9
+    mov eax, center_col
+    mov ebx, LENGTHOF welcome_msg1
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET welcome_msg1
+    call WriteString
+    
+    mov dh, 11
+    mov eax, center_col
+    mov ebx, LENGTHOF welcome_msg2
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET welcome_msg2
+    call WriteString
+    
+    mov dh, 13
+    mov eax, center_col
+    mov ebx, LENGTHOF welcome_msg3
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET welcome_msg3
+    call WriteString
+    
+    mov eax, hangman_color
+    call SetTextColor
+
+    mov eax, screen_width
+    mov ebx, 3
+    mov edx, 0
+    div ebx
+    mov ebx, eax
+    mov dl, al
+    mov dh, 16
+    call Gotoxy
+
+    ; Replace all the hangman display code with:
+    mov esi, OFFSET hangman2
+
+    call DisplayHangmanAt
+
+
+HangmanDone:
+    ret
+DisplayWelcomeScreen ENDP
+
+DisplayMenuOptions PROC
+    mov eax, menu_color
+    call SetTextColor
+    
+    mov eax, screen_width
+    mov ebx, 3
+    mov edx, 0
+    div ebx
+    shl eax, 1
+    mov dl, al
+    
+    mov dh, 19
+    call Gotoxy
+    mov edx, OFFSET menu_option1
+    call WriteString
+    
+    mov dh, 21
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET menu_option2
+    call WriteString
+    
+    mov dh, 23
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET menu_option3
+    call WriteString
+    
+    ret
+DisplayMenuOptions ENDP
+
+DisplayInstructions PROC
+    call Clrscr
+    
+    mov eax, instructions_color
+    call SetTextColor
+    
+    mov dh, 3
+    mov eax, center_col
+    mov ebx, LENGTHOF instructions1
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET instructions1
+    call WriteString
+    
+    mov dh, 6
+    mov eax, center_col
+    mov ebx, LENGTHOF instructions2
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET instructions2
+    call WriteString
+    
+    mov dh, 8
+    mov eax, center_col
+    mov ebx, LENGTHOF instructions3
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET instructions3
+    call WriteString
+    
+    mov dh, 10
+    mov eax, center_col
+    mov ebx, LENGTHOF instructions4
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET instructions4
+    call WriteString
+    
+    mov dh, 12
+    mov eax, center_col
+    mov ebx, LENGTHOF instructions5
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET instructions5
+    call WriteString
+
+    mov eax, hangman_color
+    call SetTextColor
+
+    mov eax, screen_width
+    mov ebx, 3
+    mov edx, 0
+    div ebx
+    mov dl, al
+    mov dh, 16
+    mov ebx, eax
+    call Gotoxy
+
+    ; Replace all the hangman display code with:
+    mov esi, OFFSET hangman6
+    call DisplayHangmanAt
+    
+    mov eax, menu_color
+    call SetTextColor
+    mov dh, 23
+    mov eax, center_col
+    mov ebx, LENGTHOF press_key_msg
+    shr ebx, 1
+    sub eax, ebx
+    add eax, 5
+    mov dl, al
+    call Gotoxy
+    mov edx, OFFSET press_key_msg
+    call WriteString
+
+        ; Wait for backspace key only
+WaitForBackspace:
+    call ReadChar
+    cmp al, 8  ; Backspace ASCII code
+    jne WaitForBackspace
+
+    ret
+DisplayInstructions ENDP
+
+PlayHangmanGame PROC
+GameReplayLoop:
+    call Clrscr
+    call InitializeScreenForSize
+    call InitializeGame
+    call GameLoop
+
+WaitForChoice:
+    call WaitForKey  ; Returns choice in AL
+    cmp al, 'R'
+    je GameReplayLoop
+    cmp al, 'r'
+    je GameReplayLoop
+    cmp al, 'M'
+    je ReturnToMenu
+    cmp al, 'm'
+    je ReturnToMenu
+    jmp WaitForChoice  ; Invalid key, wait again
+
+ReturnToMenu:
+    ret
+PlayHangmanGame ENDP
+
+InitializeScreenForSize PROC
+    call GetMaxXY
+    movzx eax, ax
+    mov screen_height, eax
+    shr eax, 1
+    mov center_row, eax
+    movzx edx, dx
+    mov screen_width, edx
+    shr edx, 1
+    mov center_col, edx
+    ret
+InitializeScreenForSize ENDP
+
+ClearMessageLine PROC
+    pushad
+    mov dl, 0
+    call Gotoxy
+    mov ecx, screen_width
+ClearLoop:
+    mov al, ' '
+    call WriteChar
+    loop ClearLoop
+    popad
+    ret
+ClearMessageLine ENDP
 
 InitializeGame PROC
     mov mistakes, 0
     mov success_guess_counter, 0
     
-    ; Initialize guessed letters
     mov ecx, 26
     mov esi, OFFSET str_guess
     mov al, 0
@@ -153,37 +473,39 @@ ClearGuess:
     inc esi
     loop ClearGuess
     
-    ; Select random word
     call SelectRandomWord
     
-    ; Display game title - centered with color
     mov eax, title_color
     call SetTextColor
+    mov eax, LENGTHOF msg_top
+    shr eax, 1
+    mov ebx, center_col
+    sub ebx, eax
+    mov dl, bl
     mov dh, 1
-    mov dl, 30
     call Gotoxy
     mov edx, OFFSET msg_top
     call WriteString
     
-    ; Display attempts counter
     call DisplayAttempts
-    
-    ; Display initial hangman - centered
     call DisplayHangman
     call DisplayWordLines
     ret
 InitializeGame ENDP
 
 DisplayAttempts PROC
-    mov eax, attempts_color  ; Changed to blue
+    mov eax, attempts_color
     call SetTextColor
     mov dh, 3
-    mov dl, 32
+    mov eax, center_col
+    mov ebx, LENGTHOF attempts_msg
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
     call Gotoxy
     mov edx, OFFSET attempts_msg
     call WriteString
     
-    ; Calculate attempts left
     movzx eax, mistakes
     mov ebx, 6
     sub ebx, eax
@@ -193,16 +515,13 @@ DisplayAttempts PROC
 DisplayAttempts ENDP
 
 SelectRandomWord PROC
-    ; Get random number between 0 and word_count-1
+    call Randomize
     mov eax, word_count
     call RandomRange
     
-    ; Get pointer to selected word
     mov esi, eax
-    shl esi, 2  ; Multiply by 4 (DWORD size)
+    shl esi, 2
     mov esi, word_list[esi]
-    
-    ; Copy word to str_word buffer
     mov edi, OFFSET str_word
 CopyLoop:
     mov al, [esi]
@@ -211,65 +530,90 @@ CopyLoop:
     inc edi
     cmp al, 0
     jne CopyLoop
-    
     ret
 SelectRandomWord ENDP
 
 DisplayHangman PROC
-    pushad
-
-    mov eax, hangman_color
-    call SetTextColor
-
-    ; ========== Calculate start position ==========
-    mov dh, 5            ; top row where hangman starts
-    mov dl, 40           ; center X column (adjust 40 if needed)
-    call Gotoxy
-
-    ; ========== Get correct hangman stage ==========
     movzx eax, mistakes
-    mov esi, hangman_stages[eax*4] ; pointer to stage string
-
-NextChar:
-    mov al, [esi]
-    cmp al, 0
-    je Done
-
-    cmp al, 0Dh
-    je NewLine
-    call WriteChar
-    jmp Continue
-
-NewLine:
-    ; Skip CR LF
-    inc esi
-    mov al, [esi]
-    cmp al, 0Ah
-    jne Continue
-    inc esi
-
-    ; Move to next row center
-    inc dh
-    mov dl, 40
-    call Gotoxy
-    jmp Continue
-
-Continue:
-    inc esi
-    jmp NextChar
-
-Done:
-    popad
+    mov esi, hangman_stages[eax*4]
+    mov eax, center_row
+    sub eax, 8
+    mov dh, al
+    mov eax, center_col
+    sub eax, 5
+    mov dl, al
+    call DisplayHangmanAt
     ret
 DisplayHangman ENDP
 
+; Generic procedure to display hangman
+; Input: ESI = offset of hangman stage, DH = row, DL = column
+DisplayHangmanAt PROC
+    pushad
+    mov eax, hangman_color
+    call SetTextColor
+
+    mov bl, dl    ; Save the starting column in BL
+    
+    call Gotoxy
+
+DisplayHangmanLoop:
+    mov al, [esi]
+    cmp al, 0
+    je DisplayHangmanDone
+    
+    cmp al, 0Dh
+    je DisplayHangmanNewLine
+    
+    call WriteChar
+    jmp DisplayHangmanContinue
+
+DisplayHangmanNewLine:
+    inc esi
+    cmp byte ptr [esi], 0Ah
+    jne DisplayHangmanContinue
+    inc esi
+    inc dh
+    mov dl, bl        ; Reset to saved starting column
+    call Gotoxy
+    jmp DisplayHangmanLoop
+
+DisplayHangmanContinue:
+    inc esi
+    jmp DisplayHangmanLoop
+
+DisplayHangmanDone:
+    popad
+    ret
+DisplayHangmanAt ENDP
 
 DisplayWordLines PROC
     mov eax, word_color
     call SetTextColor
-    ; Center the word below the hangman with gap
-    mov dh, 15  ; Increased gap from 14 to 15
-    mov dl, 34
+    
+    mov eax, center_row
+    add eax, 3
+    mov dh, al
+    
+    mov esi, OFFSET str_word
+    mov ecx, 0
+CountLen:
+    mov al, [esi]
+    cmp al, 0
+    je DoneCount
+    inc ecx
+    inc esi
+    jmp CountLen
+
+DoneCount:
+    mov eax, ecx
+    shl eax, 1
+    mov ebx, eax
+    shr ebx, 1
+    mov eax, center_col
+    sub eax, ebx
+    mov word_start_col, eax
+    mov dl, al
     call Gotoxy
     
     mov esi, OFFSET str_word
@@ -277,18 +621,10 @@ DisplayLoop:
     mov al, [esi]
     cmp al, 0
     je DoneDisplay
-    cmp al, ' '
-    je ShowSpace
     mov al, '_'
     call WriteChar
     mov al, ' '
     call WriteChar
-    jmp NextChar
-ShowSpace:
-    mov al, ' '
-    call WriteChar
-    call WriteChar
-NextChar:
     inc esi
     jmp DisplayLoop
 DoneDisplay:
@@ -319,41 +655,51 @@ ExitGame:
 GameLoop ENDP
 
 GetPlayerInput PROC
-    ; Clear message area - centered below everything with gaps
-    mov dh, 17  ; Increased gap from 16 to 17
-    mov dl, 30
+GetInput:
+    mov eax, center_row
+    add eax, 5
+    mov dh, al  
+    mov eax, center_col
+    sub eax, 20
+    mov dl, al
     call Gotoxy
+    
     mov ecx, 40
 ClearArea:
     mov al, ' '
     call WriteChar
     loop ClearArea
     
-    ; Display prompt - centered below everything
     mov eax, prompt_color
     call SetTextColor
-    mov dh, 17  ; Increased gap from 16 to 17
-    mov dl, 30
+    mov eax, center_row
+    add eax, 5
+    mov dh, al
+    mov eax, center_col
+    mov ebx, LENGTHOF prompt_msg
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
     call Gotoxy
     mov edx, OFFSET prompt_msg
     call WriteString
     
     call ReadChar
-    call WriteChar
-    call Crlf
     
-    ; Convert to uppercase
     cmp al, 'a'
-    jb NotLower
+    jb SkipConvert
     cmp al, 'z'
-    ja NotLower
+    ja SkipConvert
     sub al, 32
-NotLower:
+SkipConvert:
+    cmp al, 'A'
+    jb GetInput
+    cmp al, 'Z'
+    ja GetInput
     ret
 GetPlayerInput ENDP
 
 ProcessGuess PROC
-    ; Check if already guessed
     mov esi, OFFSET str_guess
     mov ecx, 26
 CheckGuessed:
@@ -363,9 +709,8 @@ CheckGuessed:
     je AlreadyGuessed
     inc esi
     loop CheckGuessed
-
+    
 NotGuessed:
-    ; Add to guessed letters
     mov esi, OFFSET str_guess
 FindEmpty:
     cmp byte ptr [esi], 0
@@ -375,17 +720,16 @@ FindEmpty:
 FoundEmpty:
     mov [esi], al
     
-    ; Check if letter is in word
     mov esi, OFFSET str_word
-    mov ebx, 0 ; found flag
-    mov ecx, 0 ; position counter
+    mov ebx, 0
+    mov ecx, 0
 CheckWord:
     mov dl, [esi]
     cmp dl, 0
     je CheckDone
     cmp dl, al
     jne NotMatch
-    mov ebx, 1 ; found
+    mov ebx, 1
     push eax
     push ecx
     call RevealLetter
@@ -395,123 +739,210 @@ NotMatch:
     inc esi
     inc ecx
     jmp CheckWord
-
-CheckDone:
-    ; Display message - centered below everything with gaps
-    mov dh, 18  ; Increased gap from 17 to 18
-    mov dl, 30
-    call Gotoxy
-    mov ecx, 40
-ClearMsg:
-    mov al, ' '
-    call WriteChar
-    loop ClearMsg
     
-    mov dh, 18  ; Increased gap from 17 to 18
-    mov dl, 30
-    call Gotoxy
+CheckDone:
+    mov eax, center_row
+    add eax, 7
+    mov dh, al
+    call ClearMessageLine
     
     cmp ebx, 1
     je CorrectGuess
     
-    ; Wrong guess - update hangman visual and attempts
     inc mistakes
-    call DisplayHangman  ; Update the visual
-    call DisplayAttempts ; Update attempts counter
+    call DisplayHangman
+    call DisplayAttempts
     mov eax, wrong_color
     call SetTextColor
+    mov eax, center_row
+    add eax, 7
+    mov dh, al
+    mov eax, center_col
+    mov ebx, LENGTHOF wrong_msg
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
     mov edx, OFFSET wrong_msg
     call WriteString
+    
+    mov eax, 500
+    call Delay
+    
+    mov eax, center_row
+    add eax, 7
+    mov dh, al
+    call ClearMessageLine
+    
+    mov ecx, -1
+    call RevealLetter
     ret
-
+    
 CorrectGuess:
     mov eax, correct_color
     call SetTextColor
+    mov eax, center_row
+    add eax, 7
+    mov dh, al
+    mov eax, center_col
+    mov ebx, LENGTHOF correct_msg
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
+    call Gotoxy
     mov edx, OFFSET correct_msg
     call WriteString
+    
+    mov eax, 500
+    call Delay
+    
+    mov eax, center_row
+    add eax, 7
+    mov dh, al
+    call ClearMessageLine
+    
+    mov ecx, -1
+    call RevealLetter
     ret
-
+    
 AlreadyGuessed:
-    mov eax, already_color  ; Changed to brown
+    mov eax, already_color
     call SetTextColor
-    mov dh, 18  ; Increased gap from 17 to 18
-    mov dl, 30
+    mov eax, center_row
+    add eax, 7
+    mov dh, al
+    mov eax, center_col
+    mov ebx, LENGTHOF already_guessed
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
     call Gotoxy
     mov edx, OFFSET already_guessed
     call WriteString
-    mov eax, 1000
+    
+    mov eax, 500
     call Delay
-    mov al, 0 ; Return invalid to retry
+    
+    mov eax, center_row
+    add eax, 7
+    mov dh, al
+    call ClearMessageLine
+    
+    mov ecx, -1
+    call RevealLetter
+    mov al, 0
     ret
 ProcessGuess ENDP
 
 RevealLetter PROC
-    ; ecx has position in word
     pushad
     
-    ; Calculate screen position (centered)
+    cmp ecx, -1
+    je RedrawAll
+    
     mov eax, ecx
-    mov ebx, 2
-    mul ebx
-    add eax, 34  ; Centered starting point
-    
-    mov dl, al
-    mov dh, 15 ; row (increased from 14 to 15)
+    shl eax, 1
+    mov ebx, word_start_col
+    add ebx, eax
+    mov dl, bl
+    mov eax, center_row
+    add eax, 3
+    mov dh, al
     call Gotoxy
-    
-    ; Get the actual letter from str_word
+
     mov esi, OFFSET str_word
     add esi, ecx
     mov al, [esi]
+    mov eax, word_color
+    call SetTextColor
+    call WriteChar
+
+    inc success_guess_counter
+    jmp DoneReveal
+    
+RedrawAll:
+    mov eax, word_color
+    call SetTextColor
+    mov esi, OFFSET str_word
+    mov ecx, 0
+    
+RedrawLoop:
+    mov al, [esi]
+    cmp al, 0
+    je DoneReveal
+    push esi
+    mov edi, OFFSET str_guess
+    mov bl, al
+CheckIfGuessed:
+    mov dl, [edi]
+    cmp dl, 0
+    je NotGuessedYet
+    cmp dl, bl
+    je FoundGuessed
+    inc edi
+    jmp CheckIfGuessed
+    
+FoundGuessed:
+    mov eax, ecx
+    shl eax, 1
+    mov ebx, word_start_col
+    add ebx, eax
+    mov dl, bl
+    mov eax, center_row
+    add eax, 3
+    mov dh, al
+    call Gotoxy
+    mov al, [esi]
     call WriteChar
     
-    inc success_guess_counter
+NotGuessedYet:
+    pop esi
+    inc esi
+    inc ecx
+    jmp RedrawLoop
+    
+DoneReveal:
     popad
     ret
 RevealLetter ENDP
 
 CheckGameStatus PROC
-    ; Check if won (all letters guessed)
     mov esi, OFFSET str_word
     mov ecx, 0
 CountLetters:
     mov al, [esi]
     cmp al, 0
     je DoneCount
-    cmp al, ' '
-    je Skip
     inc ecx
-Skip:
     inc esi
     jmp CountLetters
 DoneCount:
-    
     mov al, success_guess_counter
     cmp al, cl
     jge Won
-    
-    ; Check if lost
     cmp mistakes, 6
     jge Lost
-    
-    mov al, 0 ; Continue
+    mov al, 0
     ret
-
 Won:
-    mov al, 1 ; Won
+    mov al, 1
     ret
-
 Lost:
-    mov al, 2 ; Lost
+    mov al, 2
     ret
 CheckGameStatus ENDP
 
 DisplayWinMessage PROC
     mov eax, win_color
     call SetTextColor
-    ; Centered win message with gap
-    mov dh, 20  ; Increased gap from 18 to 20
-    mov dl, 28
+    mov eax, center_row
+    add eax, 8
+    mov dh, al  
+    mov eax, center_col
+    mov ebx, LENGTHOF msg_won
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
     call Gotoxy
     mov edx, OFFSET msg_won
     call WriteString
@@ -521,17 +952,41 @@ DisplayWinMessage ENDP
 DisplayLoseMessage PROC
     mov eax, lose_color
     call SetTextColor
-    ; Centered lose message with gap
-    mov dh, 20  ; Increased gap from 18 to 20
-    mov dl, 30
+    mov eax, center_row
+    add eax, 8
+    mov dh, al  
+    mov eax, center_col
+    mov ebx, LENGTHOF msg_lost
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
     call Gotoxy
     mov edx, OFFSET msg_lost
     call WriteString
     
-    ; Reveal the word - centered with gap
-    mov dh, 21  ; Increased gap from 19 to 21
-    mov dl, 32
+    mov esi, OFFSET str_word
+    mov ecx, 0
+CountWordLength:
+    mov al, [esi]
+    cmp al, 0
+    je DoneCounting
+    inc ecx
+    inc esi
+    jmp CountWordLength
+DoneCounting:
+    
+    mov eax, center_row
+    add eax, 9
+    mov dh, al  
+    mov eax, center_col
+    mov ebx, LENGTHOF str_word_msg
+    add ebx, ecx
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
     call Gotoxy
+    mov edx, OFFSET str_word_msg
+    call WriteString
     mov edx, OFFSET str_word
     call WriteString
     ret
@@ -540,13 +995,17 @@ DisplayLoseMessage ENDP
 WaitForKey PROC
     mov eax, prompt_color
     call SetTextColor
-    ; Centered restart message with gap
-    mov dh, 23  ; Increased gap from 21 to 23
-    mov dl, 28
+    mov dh, 26
+    mov eax, center_col
+    mov ebx, LENGTHOF msg_restart
+    shr ebx, 1
+    sub eax, ebx
+    mov dl, al
     call Gotoxy
     mov edx, OFFSET msg_restart
     call WriteString
     call ReadChar
+    ; Return the key in AL for the caller to check
     ret
 WaitForKey ENDP
 
