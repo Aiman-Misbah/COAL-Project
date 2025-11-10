@@ -276,19 +276,7 @@ DisplayWelcomeScreen PROC
     mov eax, hangman_color
     call SetTextColor
 
-    mov eax, screen_width
-    mov ebx, 3
-    mov edx, 0
-    div ebx
-   ; mov ebx, eax
-    mov dl, al
-    add ecx, 3
-    mov dh, cl
-    call Gotoxy
-
-    ; Replace all the hangman display code with:
     mov esi, OFFSET hangman2
-
     call DisplayHangmanAt
 
 
@@ -436,6 +424,7 @@ ClearLoop:
     ret
 ClearMessageLine ENDP
 
+
 InitializeGame PROC
     mov mistakes, 0
     mov success_guess_counter, 0
@@ -509,6 +498,22 @@ CopyLoop:
     popad
     ret
 SelectRandomWord ENDP
+
+GetStringLength PROC
+    ; Input: ESI = string offset
+    ; Output: ECX = length
+    push esi
+    mov ecx, 0
+CountLoop:
+    cmp byte ptr [esi], 0
+    je DoneCount
+    inc ecx
+    inc esi
+    jmp CountLoop
+DoneCount:
+    pop esi
+    ret
+GetStringLength ENDP
 
 DisplayHangman PROC
     movzx eax, mistakes
@@ -617,16 +622,8 @@ DisplayWordLines PROC
     mov dh, al
     
     mov esi, OFFSET str_word
-    mov ecx, 0
-CountLen:
-    mov al, [esi]
-    cmp al, 0
-    je DoneCount
-    inc ecx
-    inc esi
-    jmp CountLen
+    call GetStringLength
 
-DoneCount:
     mov ebx, ecx
     mov eax, center_col
     sub eax, ebx
@@ -901,15 +898,8 @@ RevealLetter ENDP
 
 CheckGameStatus PROC
     mov esi, OFFSET str_word
-    mov ecx, 0
-CountLetters:
-    mov al, [esi]
-    cmp al, 0
-    je DoneCount
-    inc ecx
-    inc esi
-    jmp CountLetters
-DoneCount:
+    call GetStringLength
+
     mov al, success_guess_counter
     cmp al, cl
     jge Won
@@ -944,15 +934,7 @@ DisplayLoseMessage PROC
     call CenterTextAtRow
     
     mov esi, OFFSET str_word
-    mov ecx, 0
-CountWordLength:
-    mov al, [esi]
-    cmp al, 0
-    je DoneCounting
-    inc ecx
-    inc esi
-    jmp CountWordLength
-DoneCounting:
+    call GetStringLength
     
     ; Calculate row for "The word was:" message (middle of lower half + 1)
     call GetLowerMidRow
