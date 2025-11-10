@@ -204,17 +204,35 @@ GetLowerMidRow PROC
 GetLowerMidRow ENDP
 
 CenterTextAtRow PROC
-    ; Input: EBX = row, ECX = LEGNTH of string
-
-    mov eax, center_col
-    shr ecx, 1
-    sub eax, ecx
-    mov dl, al
-    mov dh, bl
+    ; Input: EBX = row, EDX = message offset
+    push eax
+    push ebx
+    push ecx
+    push edx
+    
+    ; Save message offset
+    mov ecx, edx
+    
+    ; Get string length
+    call StrLength      ; length in EAX
+    shr eax, 1          ; divide by 2
+    
+    ; Calculate centered position
+    mov edx, center_col
+    sub edx, eax
+    mov dl, dl          ; column in DL
+    mov dh, bl          ; row in DH
+    
+    ; Set cursor position and write string
     call Gotoxy
-
+    mov edx, ecx        ; restore message offset
+    call WriteString
+    
+    pop edx
+    pop ecx
+    pop ebx
+    pop eax
     ret
-
 CenterTextAtRow ENDP
 
 DisplayWelcomeScreen PROC
@@ -223,49 +241,37 @@ DisplayWelcomeScreen PROC
     
     mov ebx, center_row
     sub ebx, 12
-    mov ecx, LENGTHOF welcome_title1
-    call CenterTextAtRow
     mov edx, OFFSET welcome_title1
-    call WriteString
-    
-    inc ebx
-    mov ecx, LENGTHOF welcome_title2
     call CenterTextAtRow
+  
+    inc ebx
     mov edx, OFFSET welcome_title2
-    call WriteString
-    
-    inc ebx
-    mov ecx, LENGTHOF welcome_title3
     call CenterTextAtRow
+
+    inc ebx
     mov edx, OFFSET welcome_title3
-    call WriteString
+    call CenterTextAtRow
     
     inc ebx
-    mov ecx, LENGTHOF welcome_title4
-    call CenterTextAtRow
     mov edx, OFFSET welcome_title4
-    call WriteString
+    call CenterTextAtRow
+
     
     mov eax, menu_color
     call SetTextColor
     
     add ebx, 3
-    mov ecx, LENGTHOF welcome_msg1
-    call CenterTextAtRow
     mov edx, OFFSET welcome_msg1
-    call WriteString
+    call CenterTextAtRow
     
     add ebx, 2
-    mov ecx, LENGTHOF welcome_msg2
-    call CenterTextAtRow
     mov edx, OFFSET welcome_msg2
-    call WriteString
+    call CenterTextAtRow
     
     add ebx, 2
-    mov ecx, LENGTHOF welcome_msg3
-    call CenterTextAtRow
     mov edx, OFFSET welcome_msg3
-    call WriteString
+    call CenterTextAtRow
+
     
     mov eax, hangman_color
     call SetTextColor
@@ -329,35 +335,24 @@ DisplayInstructions PROC
     
     mov ebx, center_row
     sub ebx, 12
-
-    mov ecx, LENGTHOF instructions1
-    call CenterTextAtRow
     mov edx, OFFSET instructions1
-    call WriteString
+    call CenterTextAtRow
 
     add ebx, 2
-    mov ecx, LENGTHOF instructions2
-    call CenterTextAtRow
     mov edx, OFFSET instructions2
-    call WriteString
+    call CenterTextAtRow
 
     add ebx, 2
-    mov ecx, LENGTHOF instructions3
-    call CenterTextAtRow
     mov edx, OFFSET instructions3
-    call WriteString
+    call CenterTextAtRow
 
     add ebx, 2
-    mov ecx, LENGTHOF instructions4
-    call CenterTextAtRow
     mov edx, OFFSET instructions4
-    call WriteString
+    call CenterTextAtRow
 
     add ebx, 2
-    mov ecx, LENGTHOF instructions5
-    call CenterTextAtRow
     mov edx, OFFSET instructions5
-    call WriteString
+    call CenterTextAtRow
 
     mov eax, hangman_color
     call SetTextColor
@@ -380,7 +375,6 @@ DisplayInstructions PROC
     mov edx, OFFSET press_key_msg
     call WriteString
 
-    
 
     ; Wait for backspace key only
 WaitForBackspace:
@@ -459,10 +453,8 @@ ClearGuess:
     mov eax, title_color
     call SetTextColor
     mov ebx, 1
-    mov ecx, LENGTHOF msg_top
-    call CenterTextAtRow
     mov edx, OFFSET msg_top
-    call WriteString
+    call CenterTextAtRow
     
     call DisplayAttempts
     call DisplayHangman
@@ -474,10 +466,8 @@ DisplayAttempts PROC
     mov eax, attempts_color
     call SetTextColor
     mov ebx, 4
-    mov ecx, LENGTHOF attempts_msg
-    call CenterTextAtRow
     mov edx, OFFSET attempts_msg
-    call writeString
+    call CenterTextAtRow
     
     movzx eax, mistakes
     mov ebx, 6
@@ -700,17 +690,10 @@ ClearArea:
     
     mov eax, prompt_color
     call SetTextColor
-    mov eax, center_row
-    add eax, 5
-    mov dh, al
-    mov eax, center_col
-    mov ebx, LENGTHOF prompt_msg
-    shr ebx, 1
-    sub eax, ebx
-    mov dl, al
-    call Gotoxy
+    mov ebx, center_row
+    add ebx, 5
     mov edx, OFFSET prompt_msg
-    call WriteString
+    call CenterTextAtRow
     
     call ReadChar
     
@@ -785,17 +768,10 @@ CheckDone:
     call DisplayAttempts
     mov eax, wrong_color
     call SetTextColor
-    mov eax, center_row
-    add eax, 7
-    mov dh, al
-    mov eax, center_col
-    mov ebx, LENGTHOF wrong_msg
-    shr ebx, 1
-    sub eax, ebx
-    mov dl, al
-    call Gotoxy
+    mov ebx, center_row
+    add ebx, 7
     mov edx, OFFSET wrong_msg
-    call WriteString
+    call CenterTextAtRow
     
     mov eax, 500
     call Delay
@@ -812,17 +788,10 @@ CheckDone:
 CorrectGuess:
     mov eax, correct_color
     call SetTextColor
-    mov eax, center_row
-    add eax, 7
-    mov dh, al
-    mov eax, center_col
-    mov ebx, LENGTHOF correct_msg
-    shr ebx, 1
-    sub eax, ebx
-    mov dl, al
-    call Gotoxy
+    mov ebx, center_row
+    add ebx, 7
     mov edx, OFFSET correct_msg
-    call WriteString
+    call CenterTextAtRow
     
     mov eax, 500
     call Delay
@@ -839,17 +808,10 @@ CorrectGuess:
 AlreadyGuessed:
     mov eax, already_color
     call SetTextColor
-    mov eax, center_row
-    add eax, 7
-    mov dh, al
-    mov eax, center_col
-    mov ebx, LENGTHOF already_guessed
-    shr ebx, 1
-    sub eax, ebx
-    mov dl, al
-    call Gotoxy
+    mov ebx, center_row
+    add ebx, 7
     mov edx, OFFSET already_guessed
-    call WriteString
+    call CenterTextAtRow
     
     mov eax, 500
     call Delay
@@ -966,37 +928,20 @@ CheckGameStatus ENDP
 DisplayWinMessage PROC
     mov eax, win_color
     call SetTextColor
-    ; Calculate middle of lower half: (center_row + screen_height) / 2
     call GetLowerMidRow
-    ;dec eax
-    mov dh, al
-    mov eax, center_col
-    mov ebx, LENGTHOF msg_won
-    shr ebx, 1
-    sub eax, ebx
-    mov dl, al
-    call Gotoxy
+    mov ebx, eax
     mov edx, OFFSET msg_won
-    call WriteString
+    call CenterTextAtRow
     ret
 DisplayWinMessage ENDP
 
 DisplayLoseMessage PROC
     mov eax, lose_color
     call SetTextColor
-    ; Calculate middle of lower half: (center_row + screen_height) / 2
     call GetLowerMidRow
-    ;dec eax
-    mov dh, al
-
-    mov eax, center_col
-    mov ebx, LENGTHOF msg_lost
-    shr ebx, 1
-    sub eax, ebx
-    mov dl, al
-    call Gotoxy
+    mov ebx, eax
     mov edx, OFFSET msg_lost
-    call WriteString
+    call CenterTextAtRow
     
     mov esi, OFFSET str_word
     mov ecx, 0
@@ -1032,15 +977,9 @@ WaitForKey PROC
     call SetTextColor
     call GetLowerMidRow
     add eax, 3  ; Below win/lose messages
-    mov dh, al
-    mov eax, center_col
-    mov ebx, LENGTHOF msg_restart
-    shr ebx, 1
-    sub eax, ebx
-    mov dl, al
-    call Gotoxy
+    mov ebx, eax
     mov edx, OFFSET msg_restart
-    call WriteString
+    call CenterTextAtRow
     mov eax, 800
     call Delay
     call ReadChar
