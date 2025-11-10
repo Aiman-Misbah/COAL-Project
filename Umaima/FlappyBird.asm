@@ -12,7 +12,6 @@ birdY DWORD ?
 gapHeight DWORD 8
 score DWORD 0
 gameOver DWORD 0
-gamePaused DWORD 0        ; NEW: Pause state variable
 gameRestart DWORD 0
 
 ; Pipe management - now an array for multiple pipes
@@ -79,7 +78,7 @@ resumingMsg BYTE "Resuming game ",0
 
 centerCol   DWORD ?
 centerRow   DWORD ?
-quit        DWORD 0
+
 
 ; Bird characters
 birdLine1 BYTE "(>", 0
@@ -138,7 +137,7 @@ FlappyBird PROC
 
 MainLoop:
     ; Delay between frames
-    mov eax, 50
+    mov eax, 100
     call Delay
 
     ; Read key (non-blocking)
@@ -161,7 +160,8 @@ MainLoop:
 
 NoInput:
     call ApplyGravityToBird
-    call CheckCollision
+    call CheckGroundCollision
+    call CheckPipeCollision
     mov eax, gameOver
     cmp eax, 1
     je GameOverScreen
@@ -169,8 +169,6 @@ NoInput:
     call MovePipesLeft
     call CheckPipeReset
     call CheckScore
-    mov eax, 5
-    call Delay
 
     call DrawGame
     jmp MainLoop
@@ -343,7 +341,38 @@ DotLoop:
     ret
 DotAnimation ENDP
 
-
+CenterText PROC
+     ; Input: EBX = row, EDX = message offset
+    ; Centers text AND writes it (all in one)
+    push eax
+    push ebx
+    push ecx
+    push edx
+    
+    ; Save message offset
+    mov ecx, edx
+    
+    ; Get string length
+    call StrLength      ; length in EAX
+    shr eax, 1          ; divide by 2
+    
+    ; Calculate centered position
+    mov edx, centerCol
+    sub edx, eax
+    mov dl, dl          ; column in DL
+    mov dh, bl          ; row in DH
+    
+    ; Set cursor position and write string
+    call Gotoxy
+    mov edx, ecx        ; restore message offset
+    call WriteString
+    
+    pop edx
+    pop ecx
+    pop ebx
+    pop eax
+    ret
+CenterText ENDP
 
 ShowWelcomeScreen PROC
     pushad
@@ -498,88 +527,37 @@ ShowWelcomeScreen PROC
     mov edx, OFFSET BIRD_ROW6
     call WriteString
 
-    ; --- Tagline ---
-    mov ebx, LENGTHOF taglineMsg
-    shr ebx, 1
-    mov eax, centerCol
-    sub eax, ebx
-    mov dl, al
-    mov dh, BYTE PTR centerRow
-       
-    call Gotoxy
+       ; --- Tagline ---
+    mov ebx, centerRow
     mov edx, OFFSET taglineMsg
-    call WriteString
+    call CenterText
+
 
     ; --- Instructions ---
-    mov ebx, LENGTHOF instruct1
-    shr ebx, 1
-    mov eax, centerCol
-    sub eax, ebx
-    mov dl, al
-    mov dh, BYTE PTR centerRow
-    add dh, 4
-    call Gotoxy
+    mov ebx, centerRow
+    add ebx, 4
     mov edx, OFFSET instruct1
-    call WriteString
+    call CenterText
 
-    mov ebx, LENGTHOF instruct2
-    shr ebx, 1
-    mov eax, centerCol
-    sub eax, ebx
-    mov dl, al
-    mov dh, BYTE PTR centerRow
-    add dh, 5
-    call Gotoxy
+    inc ebx
     mov edx, OFFSET instruct2
-    call WriteString
+    call CenterText
 
-    mov ebx, LENGTHOF instruct3
-    shr ebx, 1
-    mov eax, centerCol
-    sub eax, ebx
-    mov dl, al
-    mov dh, BYTE PTR centerRow
-    add dh, 6
-    call Gotoxy
+    inc ebx
     mov edx, OFFSET instruct3
-    call WriteString
+    call CenterText
 
-    mov ebx, LENGTHOF instruct4
-    shr ebx, 1
-    mov eax, centerCol
-    sub eax, ebx
-    mov dl, al
-    mov dh, BYTE PTR centerRow
-    add dh, 7
-    call Gotoxy
+    inc ebx
     mov edx, OFFSET instruct4
-    call WriteString
+    call CenterText
 
-    mov ebx, LENGTHOF instruct5
-    shr ebx, 1
-    mov eax, centerCol
-    sub eax, ebx
-    mov dl, al
-    mov dh, BYTE PTR centerRow
-    add dh, 9
-    call Gotoxy
+    add ebx, 2
     mov edx, OFFSET instruct5
-    call WriteString
+    call CenterText
 
-    mov ebx, LENGTHOF instruct6
-    shr ebx, 1
-    mov eax, centerCol
-    sub eax, ebx
-    mov dl, al
-    mov dh, BYTE PTR centerRow
-    add dh, 10
-    call Gotoxy
+    inc ebx
     mov edx, OFFSET instruct6
-    call WriteString
-
-    ; tiny delay to slow animation
-    mov eax, 50
-    call Delay
+    call CenterText
 
     ; ==========================================================
     ;                     Wait for User Input
@@ -605,7 +583,6 @@ StartGameAnim:
     mov edx, OFFSET startMsg    ; or "Starting Game"
     call WriteString
     call DotAnimation
-    mov quit, 0
     mov gameRestart, 1
     jmp Done
 
@@ -620,7 +597,6 @@ QuitToMenuAnim:
     mov edx, OFFSET quitMsg   ; define: "Returning to Menu"
     call WriteString
     call DotAnimation
-    mov quit, 1
     mov gameRestart, 0
     jmp Done
 
@@ -642,29 +618,17 @@ ShowQuitConfirmation PROC
     call DrawGame
     
     ; Use the below area for messages (below ground)
-    mov eax, belowRow
-    mov dh, al
-    mov eax, belowCol
-    mov ebx, LENGTHOF confirmQuitMsg
-    shr ebx, 1
-    sub eax, ebx
-    mov dl, al
-    call Gotoxy
+        mov ebx, belowRow
     mov edx, OFFSET confirmQuitMsg
-    call WriteString
+    call CenterText
+
     
     ; Second line for Yes/No instructions
-    mov eax, belowRow
-    inc eax
-    mov dh, al
-    mov eax, belowCol
-    mov ebx, LENGTHOF yesNoMsg
-    shr ebx, 1
-    sub eax, ebx
-    mov dl, al
-    call Gotoxy
+    mov ebx, belowRow
+    inc ebx
     mov edx, OFFSET yesNoMsg
-    call WriteString
+    call CenterText
+
 
 WaitConfirmation:
     call ReadChar
@@ -727,33 +691,19 @@ ShowGameOverQuitConfirmation PROC
     pushad
     
     ; Show confirmation message within game over screen (not in below area)
-    mov eax, boxTop
-    add eax, 9
-    mov dh, al
-    mov eax, boxLeft
-    add eax, boxRight
-    shr eax, 1
-    mov ebx, LENGTHOF confirmQuitMsg
-    shr ebx, 1
-    sub eax, ebx
-    mov dl, al
-    call Gotoxy
+        mov ebx, boxTop
+    add ebx, 9
     mov edx, OFFSET confirmQuitMsg
-    call WriteString
+    call CenterText
+
     
-    mov eax, boxTop
-    add eax, 10
-    mov dh, al
-    mov eax, boxLeft
-    add eax, boxRight
-    shr eax, 1
-    mov ebx, LENGTHOF yesNoMsg
-    shr ebx, 1
-    sub eax, ebx
-    mov dl, al
-    call Gotoxy
+    mov ebx, boxTop
+    add ebx, 10
     mov edx, OFFSET yesNoMsg
-    call WriteString
+    call CenterText
+
+
+
 
 WaitConfirmation:
     call ReadChar
@@ -1014,10 +964,10 @@ ApplyGravityToBird ENDP
 ; ==================== PIPE MANAGEMENT ====================
 MovePipesLeft PROC
     mov ecx, NUM_PIPES
-    xor esi, esi
+    mov esi, OFFSET pipeX
 MovePipesLeft_Loop:
-    dec DWORD PTR [pipeX + esi*4]
-    inc esi
+    dec DWORD PTR [esi]
+    add esi, 4
     loop MovePipesLeft_Loop
     ret
 MovePipesLeft ENDP
@@ -1096,12 +1046,6 @@ CheckScore ENDP
 
 
 ; ==================== COLLISION ====================
-CheckCollision PROC
-    call CheckGroundCollision
-    call CheckPipeCollision
-    ret
-CheckCollision ENDP
-
 CheckGroundCollision PROC
     mov eax, birdY
     add eax, 2
@@ -1166,43 +1110,16 @@ CheckPipeCollision ENDP
 ; ==================== DRAWING ====================
 DrawGame PROC
     pushad
-
-    mov eax, gamePaused
-    cmp eax, 1
-    je SkipClear
     call Clrscr
-SkipClear:
-
     call DrawUI
     call DrawBird
     call DrawPipes
     call DrawGround
-    
-    mov eax, gamePaused
-    cmp eax, 1
-    jne SkipPauseMessage
-    call DrawPauseMessage
-SkipPauseMessage:
-    
+   
     popad
     ret
 DrawGame ENDP
 
-
-; Procedure to draw pause message
-DrawPauseMessage PROC
-    pushad
-    mov eax, belowRow
-    mov dh, al
-    mov eax, belowCol
-    sub eax, 18      ; adjust horizontally for text width
-    mov dl, al
-    call Gotoxy
-    mov edx, OFFSET pauseMsg
-    call WriteString
-    popad
-    ret
-DrawPauseMessage ENDP
 
 
 DrawUI PROC
@@ -1216,15 +1133,9 @@ DrawUI PROC
     call WriteDec
 
     ; Draw instructions
-    mov dh, 0
-    mov eax, centerCol
-    mov ebx, LENGTHOF instructions
-    shr ebx, 1
-    sub eax, ebx
-    mov dl, al
-    call Gotoxy
+    mov ebx, 0
     mov edx, OFFSET instructions
-    call WriteString
+    call CenterText
 
     ; Draw separator line below UI
     mov eax, playableTop
@@ -1504,54 +1415,23 @@ call WriteChar
     call SetTextColor
 
     ; Calculate message start positions
-    mov eax, boxTop
-    add eax, 2
-    mov dh, al
-
-    mov eax, boxLeft
-    add eax, boxRight
-    shr eax, 1
-    mov ebx, LENGTHOF gameOverMsg
-    shr ebx, 1
-    sub eax, ebx
-    mov dl, al
-    call Gotoxy
+        mov ebx, boxTop
+    add ebx, 2
     mov edx, OFFSET gameOverMsg
-    call WriteString
+    call CenterText
 
-    mov eax, white + (black * 16)
-    call SetTextColor
-
-    mov eax, boxTop
-    add eax, 5
-    mov dh, al
-    mov eax, boxLeft
-    add eax, boxRight
-    shr eax, 1
-    mov ebx, LENGTHOF scoreMsg
-    shr ebx, 1
-    sub eax, ebx
-    dec eax
-    mov dl, al
-    call Gotoxy
+    ; For score, we need special handling since we write the number too
+    mov ebx, boxTop
+    add ebx, 5
     mov edx, OFFSET scoreMsg
-    call WriteString
+    call CenterText
     mov eax, score
     call WriteDec
 
-    mov eax, boxTop
-    add eax, 7
-    mov dh, al
-    mov eax, boxLeft
-    add eax, boxRight
-    shr eax, 1
-    mov ebx, LENGTHOF replayMsg
-    shr ebx, 1
-    sub eax, ebx
-    mov dl, al
-    call Gotoxy
+    mov ebx, boxTop
+    add ebx, 7
     mov edx, OFFSET replayMsg
-    call WriteString
+    call CenterText
 
 
     popad
