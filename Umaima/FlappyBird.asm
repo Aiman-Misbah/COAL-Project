@@ -141,7 +141,7 @@ FlappyBird PROC
 
 MainLoop:
     ; Delay between frames
-    mov eax, 40
+    mov eax, 80
     call Delay
 
     ; Read key (non-blocking)
