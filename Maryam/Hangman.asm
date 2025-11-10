@@ -22,7 +22,7 @@ hangman0 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
-         BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
+         BYTE hl,hl,hl,hl,hl,hl,hl,hl,hl,hl,0
 
 hangman1 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
@@ -31,7 +31,7 @@ hangman1 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
-         BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
+         BYTE hl,hl,hl,hl,hl,hl,hl,hl,hl,hl,0
 
 hangman2 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
@@ -40,7 +40,7 @@ hangman2 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
-         BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
+         BYTE hl,hl,hl,hl,hl,hl,hl,hl,hl,hl,0
 
 hangman3 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
@@ -49,7 +49,7 @@ hangman3 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
-         BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
+         BYTE hl,hl,hl,hl,hl,hl,hl,hl,hl,hl,0
 
 hangman4 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
@@ -58,7 +58,7 @@ hangman4 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
-         BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
+         BYTE hl,hl,hl,hl,hl,hl,hl,hl,hl,hl,0
 
 hangman5 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
@@ -67,7 +67,7 @@ hangman5 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,"/",0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
-         BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
+         BYTE hl,hl,hl,hl,hl,hl,hl,hl,hl,hl,0
 
 hangman6 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
@@ -76,7 +76,7 @@ hangman6 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,"/"," ","\",0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
-         BYTE spc,spc,blc,hl,hl,hl,hl,hl,hl,0
+         BYTE hl,hl,hl,hl,hl,hl,hl,hl,hl,hl,0
 
 hangman_stages DWORD hangman0, hangman1, hangman2, hangman3, hangman4, hangman5, hangman6
 
@@ -121,6 +121,8 @@ word_count = 8
 
 str_word BYTE 20 DUP(0)
 str_word_msg BYTE "The word was: ",0
+
+last_word_index DWORD -1
 
 ; Messages
 msg_restart     BYTE "Press [R] to Replay or [M] for Menu",0
@@ -175,14 +177,20 @@ MenuLoop:
     jmp MenuLoop
 
 PlayGame:
+    mov eax, 800
+    call Delay
     call PlayHangmanGame
     jmp ReturnToMain
 
 ShowInstructions:
+    mov eax, 800
+    call Delay
     call DisplayInstructions
     jmp MenuLoop
 
 ReturnToMain:
+    mov eax, 800
+    call Delay
     mov eax, white + (black * 16)
     call SetTextColor
     ret
@@ -192,7 +200,10 @@ DisplayWelcomeScreen PROC
     mov eax, welcome_color
     call SetTextColor
     
-    mov dh, 3
+    mov eax, center_row
+    sub eax, 12
+    mov dh, al
+    mov ecx, eax
     mov eax, center_col
     mov ebx, LENGTHOF welcome_title1
     shr ebx, 1
@@ -202,7 +213,8 @@ DisplayWelcomeScreen PROC
     mov edx, OFFSET welcome_title1
     call WriteString
     
-    mov dh, 4
+    inc ecx
+    mov dh, cl
     mov eax, center_col
     mov ebx, LENGTHOF welcome_title2
     shr ebx, 1
@@ -212,7 +224,8 @@ DisplayWelcomeScreen PROC
     mov edx, OFFSET welcome_title2
     call WriteString
     
-    mov dh, 5
+    inc ecx
+    mov dh, cl
     mov eax, center_col
     mov ebx, LENGTHOF welcome_title3
     shr ebx, 1
@@ -222,7 +235,8 @@ DisplayWelcomeScreen PROC
     mov edx, OFFSET welcome_title3
     call WriteString
     
-    mov dh, 6
+    inc ecx
+    mov dh, cl
     mov eax, center_col
     mov ebx, LENGTHOF welcome_title4
     shr ebx, 1
@@ -235,7 +249,8 @@ DisplayWelcomeScreen PROC
     mov eax, menu_color
     call SetTextColor
     
-    mov dh, 9
+    add ecx, 3
+    mov dh, cl
     mov eax, center_col
     mov ebx, LENGTHOF welcome_msg1
     shr ebx, 1
@@ -245,7 +260,8 @@ DisplayWelcomeScreen PROC
     mov edx, OFFSET welcome_msg1
     call WriteString
     
-    mov dh, 11
+    add ecx, 2
+    mov dh, cl
     mov eax, center_col
     mov ebx, LENGTHOF welcome_msg2
     shr ebx, 1
@@ -255,7 +271,8 @@ DisplayWelcomeScreen PROC
     mov edx, OFFSET welcome_msg2
     call WriteString
     
-    mov dh, 13
+    add ecx, 2
+    mov dh, cl
     mov eax, center_col
     mov ebx, LENGTHOF welcome_msg3
     shr ebx, 1
@@ -274,7 +291,8 @@ DisplayWelcomeScreen PROC
     div ebx
     mov ebx, eax
     mov dl, al
-    mov dh, 16
+    add ecx, 3
+    mov dh, cl
     call Gotoxy
 
     ; Replace all the hangman display code with:
@@ -291,25 +309,25 @@ DisplayMenuOptions PROC
     mov eax, menu_color
     call SetTextColor
     
-    mov eax, screen_width
-    mov ebx, 3
-    mov edx, 0
-    div ebx
-    shl eax, 1
+    mov eax, center_col
+    add eax, 5
     mov dl, al
     
-    mov dh, 19
+    add ecx, 2
+    mov dh, cl
     call Gotoxy
     mov edx, OFFSET menu_option1
     call WriteString
     
-    mov dh, 21
+    add ecx, 2
+    mov dh, cl
     mov dl, al
     call Gotoxy
     mov edx, OFFSET menu_option2
     call WriteString
     
-    mov dh, 23
+    add ecx, 2
+    mov dh, cl
     mov dl, al
     call Gotoxy
     mov edx, OFFSET menu_option3
@@ -324,7 +342,9 @@ DisplayInstructions PROC
     mov eax, instructions_color
     call SetTextColor
     
-    mov dh, 3
+    mov ecx, center_row
+    sub ecx, 12
+    mov dh, cl
     mov eax, center_col
     mov ebx, LENGTHOF instructions1
     shr ebx, 1
@@ -334,7 +354,8 @@ DisplayInstructions PROC
     mov edx, OFFSET instructions1
     call WriteString
     
-    mov dh, 6
+    add ecx, 2
+    mov dh, cl
     mov eax, center_col
     mov ebx, LENGTHOF instructions2
     shr ebx, 1
@@ -344,7 +365,8 @@ DisplayInstructions PROC
     mov edx, OFFSET instructions2
     call WriteString
     
-    mov dh, 8
+    add ecx, 2
+    mov dh, cl
     mov eax, center_col
     mov ebx, LENGTHOF instructions3
     shr ebx, 1
@@ -354,7 +376,8 @@ DisplayInstructions PROC
     mov edx, OFFSET instructions3
     call WriteString
     
-    mov dh, 10
+    add ecx, 2
+    mov dh, cl
     mov eax, center_col
     mov ebx, LENGTHOF instructions4
     shr ebx, 1
@@ -364,7 +387,8 @@ DisplayInstructions PROC
     mov edx, OFFSET instructions4
     call WriteString
     
-    mov dh, 12
+    add ecx, 2
+    mov dh, cl
     mov eax, center_col
     mov ebx, LENGTHOF instructions5
     shr ebx, 1
@@ -381,34 +405,40 @@ DisplayInstructions PROC
     mov ebx, 3
     mov edx, 0
     div ebx
-    mov dl, al
-    mov dh, 16
     mov ebx, eax
+    mov dl, al
+    add ecx, 3
+    mov dh, cl
     call Gotoxy
 
     ; Replace all the hangman display code with:
     mov esi, OFFSET hangman6
+
     call DisplayHangmanAt
-    
+
     mov eax, menu_color
     call SetTextColor
-    mov dh, 23
+    
     mov eax, center_col
-    mov ebx, LENGTHOF press_key_msg
-    shr ebx, 1
-    sub eax, ebx
     add eax, 5
     mov dl, al
+    
+    add ecx, 4
+    mov dh, cl
     call Gotoxy
     mov edx, OFFSET press_key_msg
     call WriteString
 
-        ; Wait for backspace key only
+    
+
+    ; Wait for backspace key only
 WaitForBackspace:
     call ReadChar
     cmp al, 8  ; Backspace ASCII code
     jne WaitForBackspace
 
+    mov eax, 800
+    call Delay
     ret
 DisplayInstructions ENDP
 
@@ -465,7 +495,7 @@ InitializeGame PROC
     mov mistakes, 0
     mov success_guess_counter, 0
     
-    mov ecx, 26
+        mov ecx, 26
     mov esi, OFFSET str_guess
     mov al, 0
 ClearGuess:
@@ -515,14 +545,26 @@ DisplayAttempts PROC
 DisplayAttempts ENDP
 
 SelectRandomWord PROC
+    pushad
+    
+TryAgain:
     call Randomize
     mov eax, word_count
     call RandomRange
     
+    ; Check if this is the same as last word
+    cmp eax, last_word_index
+    je TryAgain
+    
+    ; Store as last used word
+    mov last_word_index, eax
+    
+    ; Get the word pointer and copy it
     mov esi, eax
     shl esi, 2
     mov esi, word_list[esi]
     mov edi, OFFSET str_word
+    
 CopyLoop:
     mov al, [esi]
     mov [edi], al
@@ -530,6 +572,8 @@ CopyLoop:
     inc edi
     cmp al, 0
     jne CopyLoop
+    
+    popad
     ret
 SelectRandomWord ENDP
 
@@ -935,9 +979,12 @@ CheckGameStatus ENDP
 DisplayWinMessage PROC
     mov eax, win_color
     call SetTextColor
+    ; Calculate middle of lower half: (center_row + screen_height) / 2
     mov eax, center_row
-    add eax, 8
-    mov dh, al  
+    add eax, screen_height
+    shr eax, 1  ; Divide by 2
+    dec eax
+    mov dh, al
     mov eax, center_col
     mov ebx, LENGTHOF msg_won
     shr ebx, 1
@@ -952,9 +999,13 @@ DisplayWinMessage ENDP
 DisplayLoseMessage PROC
     mov eax, lose_color
     call SetTextColor
+    ; Calculate middle of lower half: (center_row + screen_height) / 2
     mov eax, center_row
-    add eax, 8
-    mov dh, al  
+    add eax, screen_height
+    shr eax, 1  ; Divide by 2
+    dec eax
+    mov dh, al
+
     mov eax, center_col
     mov ebx, LENGTHOF msg_lost
     shr ebx, 1
@@ -975,9 +1026,11 @@ CountWordLength:
     jmp CountWordLength
 DoneCounting:
     
+    ; Calculate row for "The word was:" message (middle of lower half + 1)
     mov eax, center_row
-    add eax, 9
-    mov dh, al  
+    add eax, screen_height
+    shr eax, 1  ; Divide by 2
+    mov dh, al
     mov eax, center_col
     mov ebx, LENGTHOF str_word_msg
     add ebx, ecx
@@ -995,7 +1048,12 @@ DisplayLoseMessage ENDP
 WaitForKey PROC
     mov eax, prompt_color
     call SetTextColor
-    mov dh, 26
+    ; Calculate middle of lower half: (center_row + screen_height) / 2
+    mov eax, center_row
+    add eax, screen_height
+    shr eax, 1  ; Divide by 2
+    add eax, 2  ; Below win/lose messages
+    mov dh, al
     mov eax, center_col
     mov ebx, LENGTHOF msg_restart
     shr ebx, 1
@@ -1010,3 +1068,4 @@ WaitForKey PROC
 WaitForKey ENDP
 
 END
+    
