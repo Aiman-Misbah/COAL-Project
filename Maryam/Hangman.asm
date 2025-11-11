@@ -81,10 +81,10 @@ hangman6 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
 hangman_stages DWORD hangman0, hangman1, hangman2, hangman3, hangman4, hangman5, hangman6
 
 ; Welcome screen content
-welcome_title1 BYTE "  _    _    _    _    _    _    _    _  ",0
-welcome_title2 BYTE " / \  / \  / \  / \  / \  / \  / \  / \ ",0
-welcome_title3 BYTE "( H )( A )( N )( G )( M )( A )( N )( ! )",0
-welcome_title4 BYTE " \_/  \_/  \_/  \_/  \_/  \_/  \_/  \_/ ",0
+welcome_title1 BYTE " _  _   __   __ _   ___  _  _   __   __ _ ",0
+welcome_title2 BYTE "/ )( \ / _\ (  ( \ / __)( \/ ) / _\ (  ( \",0
+welcome_title3 BYTE ") __ (/    \/    /( (_ \/ \/ \/    \/    /",0
+welcome_title4 BYTE "\_)(_/\_/\_/\_)__) \___/\_)(_/\_/\_/\_)__)",0
 
 welcome_msg1   BYTE "WELCOME, BRAVE GUESSER!",0
 welcome_msg2   BYTE "Ready to save a virtual life?",0
