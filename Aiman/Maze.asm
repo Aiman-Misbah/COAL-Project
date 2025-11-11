@@ -1,5 +1,4 @@
 INCLUDE Irvine32.inc
-
 .data
 old_playerRow DWORD ?
 old_playerCol DWORD ?
