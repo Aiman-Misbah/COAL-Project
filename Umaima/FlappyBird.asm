@@ -4,6 +4,7 @@
 ; =============================
 
 INCLUDE Irvine32.inc
+
 .data
 ; ==================== GAME VARIABLES ====================
 birdX DWORD ?
