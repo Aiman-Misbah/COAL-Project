@@ -1,4 +1,5 @@
 INCLUDE Irvine32.inc
+
 .data
 old_playerRow DWORD ?
 old_playerCol DWORD ?
@@ -41,7 +42,7 @@ gameOverLine4 BYTE "\    \_\  \/ __ \|  Y Y  \  ___/  /    |    \   /\  ___/|  |
 gameOverLine5 BYTE " \______  (____  /__|_|  /\___  > \_______  /\_/  \___  >__|   ",0
 gameOverLine6 BYTE "        \/     \/      \/     \/          \/          \/       ",0
 
-gameOverLines DWORD OFFSET gameOverLine1, OFFSET gameOverLine2, OFFSET gameOverLine3, OFFSET gameOverLine4, OFFSET gameOverLine5, OFFSET gameOverLine6
+gameOverLines DWORD gameOverLine1, gameOverLine2, gameOverLine3, gameOverLine4, gameOverLine5, gameOverLine6
 gameOverRows BYTE -8, -7, -6, -5, -4, -3
 
 mini_positions DWORD 1,1, 1,7, 1,13, 3,1, 3,7, 3,13, 5,1, 5,7, 5,13
