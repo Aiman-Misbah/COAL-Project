@@ -8,6 +8,7 @@ tlc EQU 201
 blc EQU 200
 vl EQU 186
 hl EQU 205
+t_up EQU 202
 
 screen_width DWORD ?
 screen_height DWORD ?
@@ -22,7 +23,7 @@ hangman0 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
-         BYTE hl,hl,hl,hl,hl,hl,hl,hl,hl,hl,0
+         BYTE hl,hl,t_up,hl,hl,hl,hl,hl,hl,hl,0
 
 hangman1 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
@@ -31,7 +32,7 @@ hangman1 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
-         BYTE hl,hl,hl,hl,hl,hl,hl,hl,hl,hl,0
+         BYTE hl,hl,t_up,hl,hl,hl,hl,hl,hl,hl,0
 
 hangman2 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
@@ -40,7 +41,7 @@ hangman2 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
-         BYTE hl,hl,hl,hl,hl,hl,hl,hl,hl,hl,0
+         BYTE hl,hl,t_up,hl,hl,hl,hl,hl,hl,hl,0
 
 hangman3 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
@@ -49,7 +50,7 @@ hangman3 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
-         BYTE hl,hl,hl,hl,hl,hl,hl,hl,hl,hl,0
+         BYTE hl,hl,t_up,hl,hl,hl,hl,hl,hl,hl,0
 
 hangman4 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
@@ -58,7 +59,7 @@ hangman4 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
-         BYTE hl,hl,hl,hl,hl,hl,hl,hl,hl,hl,0
+         BYTE hl,hl,t_up,hl,hl,hl,hl,hl,hl,hl,0
 
 hangman5 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
@@ -67,7 +68,7 @@ hangman5 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,"/",0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
-         BYTE hl,hl,hl,hl,hl,hl,hl,hl,hl,hl,0
+         BYTE hl,hl,t_up,hl,hl,hl,hl,hl,hl,hl,0
 
 hangman6 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
@@ -76,7 +77,7 @@ hangman6 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,"|",0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,"/"," ","\",0dh,0ah
          BYTE spc,spc,vl,spc,0dh,0ah
-         BYTE hl,hl,hl,hl,hl,hl,hl,hl,hl,hl,0
+         BYTE hl,hl,t_up,hl,hl,hl,hl,hl,hl,hl,0
 
 hangman_stages DWORD hangman0, hangman1, hangman2, hangman3, hangman4, hangman5, hangman6
 
@@ -116,7 +117,7 @@ word6 BYTE "MEMORY",0
 word7 BYTE "KEYBOARD",0
 word8 BYTE "SOFTWARE",0
 
-word_list DWORD OFFSET word1, OFFSET word2, OFFSET word3, OFFSET word4, OFFSET word5, OFFSET word6, OFFSET word7, OFFSET word8
+word_list DWORD word1, word2, word3, word4, word5, word6, word7, word8
 word_count = 8
 
 str_word BYTE 20 DUP(0)
