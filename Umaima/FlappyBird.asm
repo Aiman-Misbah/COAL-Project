@@ -1,40 +1,32 @@
-; =============================
-; FLAPPY BIRD (Dynamic Screen)
-; Author: 24K-0501
-; =============================
-
 INCLUDE Irvine32.inc
 
 .data
-; ==================== GAME VARIABLES ====================
-birdX DWORD ?
-birdY DWORD ?
-gapHeight DWORD 8
-score DWORD 0
-gameOver DWORD 0
-gameRestart DWORD 0
+birdX DWORD ?       ;ye dono are for bird ki position
+birdY DWORD ?       ;x means col (horizontally) and y means row (vertically)
+gapHeight DWORD 8   ;yaani pipes k beech ka gap jismein se bird jaayegi
+score DWORD 0       ;increments 1 if successfully passed pipes k beech se
+gameOver DWORD 0    ;flag   0 = game chal rha hai       1 = game over
+gameRestart DWORD 0 ;flag for restart   1 = restart the game and vice versa
 
-; Pipe management - now an array for multiple pipes
-NUM_PIPES EQU 3
-PIPE_SPACING DWORD ?  ; Distance between pipes
+NUM_PIPES EQU 3     ;for the array of pipes - aik saath screen par 3 pipes aayenge
+PIPE_SPACING DWORD ?  ;Distance between pipes
 
-pipeX DWORD NUM_PIPES DUP(?)
-gapTop DWORD NUM_PIPES DUP(?)
-pipeScored DWORD NUM_PIPES DUP(0)   ; Scoring state for each pipe
+pipeX DWORD NUM_PIPES DUP(?)        ;cols for the 3 pipes being displayed
+gapTop DWORD NUM_PIPES DUP(?)       ;top of the gap - yaani end of the top half of the pipe (vertical position)
+pipeScored DWORD NUM_PIPES DUP(0)   ;bird ne us pipe ko pass kia hai ya nhi 1=passed and vice versa
 
-; FLAPPY BIRD Block Art (using ASCII 219 for blocks)
+;characters for drawing the title for the welcome screen
 
+blk EQU 219     ;a solid block
+spc EQU 32      ;space
+trc EQU 187     ;top right corner (ye saare corners and lines are double)
+tlc EQU 201     ;top left corner
+blc EQU 200     ;bottom left corner
+brc EQU 188     ;bottom right corner
+vl EQU 186      ;vertical line
+hl EQU 205      ;horizontal line
 
-blk EQU 219
-spc EQU 32
-trc EQU 187
-tlc EQU 201
-blc EQU 200
-brc EQU 188
-vl EQU 186
-hl EQU 205
-
-
+;title - different parts bcoz of statement too complex error
 FLAPPY_ROW1_P1 BYTE blk,blk,blk,blk,blk,blk,blk,trc,   blk,blk,trc,spc,spc,spc,spc,spc,spc,	blk,blk,blk,blk,blk,trc,spc,		blk,blk,blk,blk,blk,blk,trc,spc,	blk,blk,blk,blk,blk,blk,trc,spc,0
 FLAPPY_ROW1_P2 BYTE blk,blk,trc,spc,spc,spc,blk,blk,trc,0
 FLAPPY_ROW2_P1 BYTE blk,blk,tlc,hl,hl,hl,hl,brc,       blk,blk,vl,spc,spc,spc,spc,spc,         blk,blk,tlc,hl,hl,blk,blk,trc,	blk,blk,tlc,hl,hl,blk,blk,trc,		blk,blk,tlc,hl,hl,blk,blk,trc,0
@@ -55,9 +47,7 @@ BIRD_ROW4   BYTE spc,spc,spc,spc,blk,blk,tlc,hl,hl,blk,blk,trc,		blk,blk,vl,		bl
 BIRD_ROW5   BYTE spc,spc,spc,spc,blk,blk,blk,blk,blk,blk,tlc,brc,	blk,blk,vl,		blk,blk,vl,spc,spc,blk,blk,vl,		blk,blk,blk,blk,blk,blk,tlc,brc,spc,0
 BIRD_ROW6   BYTE spc,spc,spc,spc,blc,hl,hl,hl,hl,hl,brc,spc, 		blc,hl,brc,		blc,hl,brc,spc,spc,blc,hl,brc,		blc,hl,hl,hl,hl,hl,brc,spc,spc,0
 
-
-
-
+;saare instructions on the welcome screen
 taglineMsg  BYTE "Tap, Flap, and Dodge - Can You Beat Gravity?",0
 instruct1   BYTE "Press UP ARROW to flap your wings!",0
 instruct2   BYTE "P  to pause   |   R  to resume   |   BACKSPACE to quit",0
@@ -66,55 +56,48 @@ instruct4   BYTE "Stay calm. Stay steady. Stay flappy.",0
 instruct5   BYTE "Press P to Start your flight!",0
 instruct6   BYTE "Press BACKSPACE if you wish to return to the menu", 0
 
+;action wale msgs
 quitMsg BYTE "Returning to Menu ",0
 startMsg BYTE "Starting Game ",0
 restartMsg BYTE "Restarting Game ",0
-
-; Confirmation messages
 confirmQuitMsg BYTE "Are you sure you want to quit? (Y/N)",0
 yesNoMsg BYTE "Press Y for Yes, N for No",0
 resumingMsg BYTE "Resuming game ",0
-
-
-centerCol   DWORD ?
-centerRow   DWORD ?
-
 
 ; Bird characters
 birdLine1 BYTE "(>", 0
 birdLine2 BYTE ") ", 0
 
-; Game elements
-pipeChar BYTE 0DBh, 0
+;pipe ka character is the block character
+pipeChar BYTE blk, 0
 
-
-
-; Messages
+;mazeed msgs
 scoreMsg BYTE "Score: ",0
 gameOverMsg BYTE "GAME OVER!",0
 instructions BYTE "--FLAPPY BIRD--",0
 pauseMsg BYTE "GAME PAUSED! Press 'R' to resume or 'BACKSPACE' to quit", 0
-
 replayMsg BYTE "Press R to replay or BACKSPACE to quit", 0
 
-
-; Screen dimensions (set at runtime)
+;screen k dimensions and center wali cheezein
 screenWidth DWORD ?
 screenHeight DWORD ?
-pipeWidth DWORD 2
-playableTop DWORD 2
-playableBottom DWORD ?
+centerCol   DWORD ?
+centerRow   DWORD ?
 
-readyMsg BYTE "READY?",0
+pipeWidth DWORD 2       ;pipe ki width is 2 mtlb is block characters
+playableTop DWORD 2     ;the khelne wala area is starting from row 2 - row 0 is for the msgs and row 1 is for like the boundary
+playableBottom DWORD ?  ;that is calculated bcoz ground position varies according to the screen size
+
+readyMsg BYTE "READY?",0    ;countdown k msgs
 countdown3 BYTE "~3~",0
 countdown2 BYTE "~2~",0  
 countdown1 BYTE "~1~",0
 goMsg BYTE "GO!",0
 
-belowRow DWORD ?
+belowRow DWORD ?    ;center of the area below the ground
 belowCol DWORD ?
 
-
+;game over k box ki cheezein
 boxTop      DWORD ?
 boxLeft     DWORD ?
 boxWidth    DWORD ?
@@ -124,8 +107,6 @@ boxBottom   DWORD ?
 
 
 .code
-
-; ==================== MAIN PROCEDURE ====================
 FlappyBird PROC
     call InitializeScreen
     call ShowWelcomeScreen
