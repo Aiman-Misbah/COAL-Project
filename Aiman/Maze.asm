@@ -463,45 +463,6 @@ maze_proceed:
     ret
 Maze_WelcomeScreen ENDP
 
-DrawSingleTile PROC         ;input: ecx=target row   edx=target col
-    pushad
-    mov eax, mazeStartRow   ;adding current relative coordinates to the starting coordinates of the maze to find exact 
-    add eax, ecx
-    mov dh, al
-    mov eax, mazeStartCol
-    add eax, edx
-    mov dl, al
-    call Gotoxy
-    
-    mov eax, ecx
-    cmp eax, maze_playerRow     ;comparing target coordinates with player k current coordinates
-    jne drawMazeTile
-    mov eax, edx
-    cmp eax, maze_playerCol
-    jne drawMazeTile
-    mov eax, white + (black * 16)
-    call SetTextColor
-    mov al, '@'                 ;if player yahaan hai then print its character
-    call WriteChar
-    jmp drawDone
-drawMazeTile:
-    mov eax, white + (black * 16)
-    call SetTextColor
-    push ecx
-    push edx                    ;wrna wo wala character ki pos pehle calcuate kro and then print it
-    mov eax, ecx
-    imul eax, MAZE_COLS
-    add eax, edx
-    mov esi, OFFSET maze_data
-    mov al, [esi + eax]
-    call WriteChar
-    pop edx
-    pop ecx
-drawDone:
-    popad
-    ret
-DrawSingleTile ENDP
-
 UpdateStatsDisplay PROC
     pushad
     mov eax, 14 + (black * 16)      ;Yellow
@@ -749,9 +710,7 @@ maze_checkWalls:
     mov BYTE PTR [esi + eax], ' '
     inc maze_coinsCollected         ;increment the coin counter
 
-    call DrawSingleTile         ;ecx and edx mein relative coordinates
     call UpdateStatsDisplay     ;draw the tile with space now and update the coin counter display
-
 
 maze_movePlayer:                ;update player pos
     mov maze_playerRow, ecx
