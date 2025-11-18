@@ -6,13 +6,13 @@ birdY DWORD ?       ;x means col (horizontally) and y means row (vertically)
 gapHeight DWORD 8   ;yaani pipes k beech ka gap jismein se bird jaayegi
 score DWORD 0       ;increments 1 if successfully passed pipes k beech se
 gameOver DWORD 0    ;flag   0 = game chal rha hai       1 = game over
-gameRestart DWORD 0 ;flag for restart   1 = restart the game and vice versa
+gameRestart DWORD 0 ;flag for restart/start from the beginning  1 = restart the game and vice versa
 
 NUM_PIPES EQU 3     ;for the array of pipes - aik saath screen par 3 pipes aayenge
 PIPE_SPACING DWORD ?  ;Distance between pipes
 
 pipeX DWORD NUM_PIPES DUP(?)        ;cols for the 3 pipes being displayed
-gapTop DWORD NUM_PIPES DUP(?)       ;top of the gap - yaani end of the top half of the pipe (vertical position)
+gapTop DWORD NUM_PIPES DUP(?)       ;top of the gap - yaani end of the top half of the pipe (vertical position) - different for all pipes
 pipeScored DWORD NUM_PIPES DUP(0)   ;bird ne us pipe ko pass kia hai ya nhi 1=passed and vice versa
 
 ;characters for drawing the title for the welcome screen
@@ -88,11 +88,11 @@ pipeWidth DWORD 2       ;pipe ki width is 2 mtlb is block characters
 playableTop DWORD 2     ;the khelne wala area is starting from row 2 - row 0 is for the msgs and row 1 is for like the boundary
 playableBottom DWORD ?  ;that is calculated bcoz ground position varies according to the screen size
 
-readyMsg BYTE "READY?",0    ;countdown k msgs
-countdown3 BYTE "~3~",0
-countdown2 BYTE "~2~",0  
-countdown1 BYTE "~1~",0
-goMsg BYTE "GO!",0
+readyMsg BYTE " READY?",0    ;countdown k msgs
+countdown3 BYTE "   3   ",0
+countdown2 BYTE "   2   ",0  
+countdown1 BYTE "   1   ",0
+goMsg BYTE "  GO!  ",0
 
 belowRow DWORD ?    ;center of the area below the ground
 belowCol DWORD ?
@@ -110,10 +110,9 @@ boxBottom   DWORD ?
 FlappyBird PROC
     call InitializeScreen
     call ShowWelcomeScreen
-    cmp gameRestart, 0
+    cmp gameRestart, 0      ;agar game start nhi krna to back to menu wrna to the game
     je QuitGame
-    call ResetGame
-    call Clrscr
+    call ResetGame          ;initializing the game
 
     mov eax, white + (black * 16)
     call SetTextColor
@@ -121,41 +120,35 @@ FlappyBird PROC
     call ShowCountdown
 
 MainLoop:
-    ; Delay between frames
+    ; Delay between frames kionke iske baghair boht tez jaa rha tha
     mov eax, 80
     call Delay
 
-    ; Read key (non-blocking)
-    call ReadKey
+    call ReadKey        ;not ReadChar bcoz we are not stopping for input agar koi input nhi to continue as usual
     jz NoInput
 
-    ; BACKSPACE to quit
-    cmp al, 08h
+    cmp al, 08h         ;08h for backspace
     je ConfirmQuit
-
-    ; Pause handling
-    cmp al, 'p'
+    cmp al, 'p'         ;dono cases are handled - P and p
     je DoPause
     cmp al, 'P'
     je DoPause
-
-    ; Flap (UP arrow)
-    cmp ax, 4800h
+    cmp ax, 4800h       ;4800 is for up arrow key
     je Flap
 
 NoInput:
-    call ApplyGravityToBird
-    call CheckGroundCollision
-    call CheckPipeCollision
+    call ApplyGravityToBird     ;bird ko normally to giraana hi hai
+    call CheckGroundCollision   ;ground collision kr liye
+    call CheckPipeCollision     ;pipe collision keliye
     mov eax, gameOver
     cmp eax, 1
     je GameOverScreen
 
-    call MovePipesLeft
-    call CheckPipeReset
-    call CheckScore
+    call MovePipesLeft      ;moving pipes to the left 1 col
+    call CheckPipeReset     ;checking if that pipe has been passed
+    call CheckScore         ;updating score if that pipe has been passed
 
-    call DrawGame
+    call DrawGame       ;ab saari changes k baad draw again
     jmp MainLoop
 
 ConfirmQuit:
@@ -175,7 +168,7 @@ ShowCountdownAndResume:
 
 
 Flap:
-    call HandleFlap
+    call HandleFlap     ;bird ki movement - har baar arrow key press krne par
     jmp NoInput
 
 DoPause:
@@ -185,53 +178,37 @@ DoPause:
     je QuitGame              ; if pause requested quit, behave like ESC in main loop
     jmp MainLoop
 
-
 GameOverScreen:
-    call DrawGameOver
+    call DrawGameOver       ;game over ka box
 
-WaitForReplayOrQuit:
+WaitForReplayOrQuit:        ;after game over kia krna hai
     call ReadChar
-
     cmp al, 'r'
     je RestartAfterGameOver
     cmp al, 'R'
     je RestartAfterGameOver
-
-    cmp al, 08h             ; BACKSPACE = ask for confirmation
+    cmp al, 08h                 ; BACKSPACE = ask for confirmation
     je AskQuitConfirmation
-
-    jmp WaitForReplayOrQuit
+    jmp WaitForReplayOrQuit     ;invalid input pr kuch nhi krega
 
 AskQuitConfirmation:
     mov ebx, boxTop
     add ebx, 9
     mov edx, OFFSET confirmQuitMsg
-    call GenericConfirmation  ; handles Y/N inside itself
+    call GenericConfirmation  ; handles yes no wali cheezein inside itself
 
     mov eax, gameRestart
     cmp eax, 0
-    je QuitGame             ; user confirmed quit
-
+    je QuitGame             ;0 mtlb quit
     cmp eax, 1
     je WaitForReplayOrQuit  ; user chose No, return to game-over screen
 
-    jmp WaitForReplayOrQuit
-
 
 RestartAfterGameOver:
-     mov eax, boxTop
-    add eax, 10    ; Position below the replay message (row 8)
-    mov dh, al
-    mov eax, boxLeft
-    add eax, boxRight
-    shr eax, 1
-    mov ebx, LENGTHOF restartMsg
-    shr ebx, 1
-    sub eax, ebx
-    mov dl, al
-    call Gotoxy
+    mov ebx, boxTop             ;displaying rstarting game
+    add ebx, 10             
     mov edx, OFFSET restartMsg
-    call WriteString
+    call CenterText
     call DotAnimation
     call ResetGame
     call Clrscr
@@ -248,72 +225,47 @@ FlappyBird ENDP
 
 PauseGame PROC
     pushad
-
-    ; === Show pause message ===
-    mov edx, OFFSET pauseMsg
+    mov edx, OFFSET pauseMsg    ;msgs in the below area
     call DisplayBelowMessage
-
-    ; Default: assume resume unless ESC pressed
-    mov gameRestart, 1
 
 WaitResumeOrQuit:
     call ReadChar
-
     cmp al, 'r'           ; Resume?
     je ResumePause
     cmp al, 'R'
     je ResumePause
-
     cmp al, 08h           ; BACKSPACE = quit to menu
     je ConfirmQuitInPause
-
     jmp WaitResumeOrQuit
 
 ConfirmQuitInPause:
     mov ebx, belowRow
     mov edx, OFFSET confirmQuitMsg
     call GenericConfirmation
-    cmp gameRestart, 0
+    cmp gameRestart, 0          ;if it is 0 then it means quit
     je QuitToMenu
-    cmp gameRestart, 2    ; Check if we need to show countdown
-    je ShowCountdownFromPause
-    ; If we get here, something went wrong - just resume
+
+ResumePause:                    ;wrna 2 hoga kionke since it is not game over it won't be 1
     call Clrscr
     call ShowCountdown
     popad
     ret
 
-ShowCountdownFromPause:
-    call Clrscr
-    call ShowCountdown
-    popad
-    ret
-
-; === Resume the game with countdown ===
-ResumePause:
-    call Clrscr
-    call ShowCountdown
-    popad
-    ret
-
-; === Quit game back to menu (set flag and return) ===
 QuitToMenu:
-    mov gameRestart, 0    ; tell caller: quit to menu
+    mov gameRestart, 0    ;game restart nhi krna (yahaan we are taking it as resume)
     popad
     ret
 PauseGame ENDP
 
-; message = OFFSET string, row = DH, col = DL
-; will print message and animate 3 dots
+
 DotAnimation PROC
-    ; animate three dots
-    mov ecx, 3
-    mov eax, 300        ; 300ms delay
+    ; message = OFFSET string, row = DH, col = DL
+    mov ecx, 3              ;ye saari cheezein to pehle se hi set hain - dots will appear infront of the text
+    mov eax, 300        ; thora sa delay
     call Delay
     
 DotLoop:
-    ; Write a dot character directly
-    mov al, '.'         ; Use period character
+    mov al, '.'         ;print har dot with a little delay in between
     call WriteChar
     
     mov eax, 300        ; 300ms delay between dots
@@ -321,95 +273,69 @@ DotLoop:
     
     loop DotLoop
     
-    mov eax, 300        ; 300ms delay after last dot
+    mov eax, 300        ;animation khatam hone k baad bhi thora sa delay
     call Delay
     
     ret
 DotAnimation ENDP
 
-; ==================== OPTIMIZED MESSAGE DISPLAY ====================
 DisplayBelowMessage PROC
-    ; Input: EDX = message offset
-    pushad
 
-    mov ebx, edx
-    call StrLength      ; length in EAX
+    mov ebx, edx        ; Input: edx = message offset
+    call StrLength      ; length in eax
     shr eax, 1          ; divide by 2
     mov ecx, belowCol
     sub ecx, eax        ; centerCol - (length/2)
-    mov eax, belowRow
-    mov dh, al          ; row
-    mov dl, cl          ; column
+    mov eax, belowRow   ;center row is center of below area
+    mov dh, al          ; cursor setting
+    mov dl, cl          
     call Gotoxy
 
     mov edx, ebx
     call WriteString
     
-    popad
     ret
 DisplayBelowMessage ENDP
 
 CenterText PROC
-     ; Input: EBX = row, EDX = message offset
-    ; Centers text AND writes it (all in one)
-    push eax
-    push ebx
-    push ecx
+    push ebx        ;Input: EBX = row, EDX = message offset
     push edx
     
-    ; Save message offset
-    mov ecx, edx
+    mov ecx, edx        ;taake wapis mil ske
     
-    ; Get string length
-    call StrLength      ; length in EAX
-    shr eax, 1          ; divide by 2
+    call StrLength      ; eax = length
+    shr eax, 1          ; half
     
-    ; Calculate centered position
-    mov edx, centerCol
+    mov edx, centerCol  ;calculating center position for printing
     sub edx, eax
-    mov dl, dl          ; column in DL
-    mov dh, bl          ; row in DH
+    mov dh, bl          ; row in dh - dl mein to aahi gaya na
     
-    ; Set cursor position and write string
     call Gotoxy
-    mov edx, ecx        ; restore message offset
+    mov edx, ecx        ; restoring the text message offset
     call WriteString
     
     pop edx
-    pop ecx
     pop ebx
-    pop eax
     ret
 CenterText ENDP
 
 ShowWelcomeScreen PROC
-    pushad
     call Clrscr
 
-    ; ===== Calculate screen center =====
-    mov eax, screenWidth
+    mov eax, screenWidth    ;screen center wali cheezein for welcome screen
     shr eax, 1
     mov centerCol, eax
 
-    mov eax, playableTop
-    add eax, playableBottom
+    mov eax, playableTop        ;using playable area for the center row bcoz poori screen jb kr rhe the to wo boht neeche hojaa rha tha
+    add eax, playableBottom     ;and isliye bhi kionke action msgs are below-area wise
     shr eax, 1
     mov centerRow, eax
 
 
-
-    ; ==========================================================
-    ;                   Display Fun Welcome Text
-    ; ==========================================================
-
-    ; --- Title ---
-    ; --- Display FLAPPY ---
-    mov dh, BYTE PTR centerRow
-    sub dh, 8
-    mov eax, centerCol
-    mov ebx, LENGTHOF FLAPPY_ROW1_P1
-    shr ebx, 1
-    sub eax, 43  ; Half the width of FLAPPY text
+    mov dh, BYTE PTR centerRow      ;Displaying the FLAPPY BIRD title
+    sub dh, 8                       ;center se thora oopar
+    mov eax, centerCol                 
+    sub eax, 43  ;Half the width of FLAPPY text      ;starting col
     mov dl, al
     call Gotoxy
     mov edx, OFFSET FLAPPY_ROW1_P1
@@ -418,7 +344,7 @@ ShowWelcomeScreen PROC
     call WriteString
 
     mov dh, BYTE PTR centerRow
-    sub dh, 7
+    sub dh, 7                   ;incrementing rows 
     mov eax, centerCol
     sub eax, 43
     mov dl, al
@@ -476,11 +402,10 @@ ShowWelcomeScreen PROC
     mov edx, OFFSET FLAPPY_ROW6_P2
     call WriteString
 
-    ; --- Display BIRD ---
-    mov dh, BYTE PTR centerRow
-    sub dh, 8
+    mov dh, BYTE PTR centerRow      ;now displaying the BIRD
+    sub dh, 8                       ;same row as the top of FLAPPY
     mov eax, centerCol
-    add eax, 10  ; Position BIRD to the right of FLAPPY
+    add eax, 8                 ;thora right of the FLAPPY
     mov dl, al
     call Gotoxy
     mov edx, OFFSET BIRD_ROW1
@@ -489,7 +414,7 @@ ShowWelcomeScreen PROC
     mov dh, BYTE PTR centerRow
     sub dh, 7
     mov eax, centerCol
-    add eax, 10
+    add eax, 8
     mov dl, al
     call Gotoxy
     mov edx, OFFSET BIRD_ROW2
@@ -498,7 +423,7 @@ ShowWelcomeScreen PROC
     mov dh, BYTE PTR centerRow
     sub dh, 6
     mov eax, centerCol
-    add eax, 10
+    add eax, 8
     mov dl, al
     call Gotoxy
     mov edx, OFFSET BIRD_ROW3
@@ -507,7 +432,7 @@ ShowWelcomeScreen PROC
     mov dh, BYTE PTR centerRow
     sub dh, 5
     mov eax, centerCol
-    add eax, 10
+    add eax, 8
     mov dl, al
     call Gotoxy
     mov edx, OFFSET BIRD_ROW4
@@ -516,7 +441,7 @@ ShowWelcomeScreen PROC
     mov dh, BYTE PTR centerRow
     sub dh, 4
     mov eax, centerCol
-    add eax, 10
+    add eax, 8
     mov dl, al
     call Gotoxy
     mov edx, OFFSET BIRD_ROW5
@@ -525,23 +450,20 @@ ShowWelcomeScreen PROC
     mov dh, BYTE PTR centerRow
     sub dh, 3
     mov eax, centerCol
-    add eax, 10
+    add eax, 8
     mov dl, al
     call Gotoxy
     mov edx, OFFSET BIRD_ROW6
     call WriteString
 
-       ; --- Tagline ---
-    mov ebx, centerRow
+    mov ebx, centerRow      ;now all the msgs and instructions
     inc ebx
     mov edx, OFFSET taglineMsg
     call CenterText
 
-    ; ===== Set colors =====
-    mov eax, yellow + (black * 16)
+    mov eax, yellow + (black * 16)  ;yellow for the instructions
     call SetTextColor
 
-    ; --- Instructions ---
     mov ebx, centerRow
     add ebx, 4
     mov edx, OFFSET instruct1
@@ -559,7 +481,7 @@ ShowWelcomeScreen PROC
     mov edx, OFFSET instruct4
     call CenterText
 
-    mov eax, brown + (black * 16)
+    mov eax, brown + (black * 16)   ;kuch in brown
     call SetTextColor
 
     add ebx, 2
@@ -570,64 +492,52 @@ ShowWelcomeScreen PROC
     mov edx, OFFSET instruct6
     call CenterText
 
-    mov eax, yellow + (black * 16)
+    mov eax, yellow + (black * 16)  ;acion msg in yellow
     call SetTextColor
 
-    ; ==========================================================
-    ;                     Wait for User Input
-    ; ==========================================================
 WaitKey:
-    call ReadChar
+    call ReadChar       ;action based on konsi key is pressed
     cmp al, 'P'
     je StartGameAnim
     cmp al, 'p'
     je StartGameAnim
-    cmp al, 8              ; Backspace
+    cmp al, 08h              ;08 represents BACKSPACE
     je QuitToMenuAnim
     jmp WaitKey
 
-; === Start game animation & delay ===
 StartGameAnim:
-    mov edx, OFFSET startMsg
+    mov edx, OFFSET startMsg    ;relevant msg is shown in the below area with dot animation 
     call DisplayBelowMessage
     call DotAnimation
-    mov gameRestart, 1
+    mov gameRestart, 1          ;since game is starting from the beginning restart is 1
     jmp Done
 
-; === Quit to menu animation & delay ===
+
 QuitToMenuAnim:
     mov edx, OFFSET quitMsg
     call DisplayBelowMessage
     call DotAnimation
-    mov gameRestart, 0
+    mov gameRestart, 0          ;waapis menu p jaa rhe hain not starting so it is 0
     jmp Done
 
 Done:
-    ; ===== Reset color before returning =====
     mov eax, white + (black * 16)
     call SetTextColor
 
-    popad
     ret
 ShowWelcomeScreen ENDP
 
-
-; ==================== GENERIC CONFIRMATION ====================
 GenericConfirmation PROC
-    ; Input: EBX = message row, EDX = confirm message offset
-    ; Returns: gameRestart = 0 (quit), 1 (no), 2 (show countdown)
-    pushad
+    ; Input: ebx = message konsi row mein print hoga, edx = confirm message offset
+    ; Returns: gameRestart = 0 (quit), 1 (no - only for game over), 2 (show countdown)
     
-    ; Check if we're in game over context (boxTop is set)
-    mov eax, boxTop
+    mov eax, boxTop     ;if boxTop is not calculated then msgs will be shown in below area wrna screen k center mein
     cmp eax, 0
     jg DisplayMessages
     
-    ; Normal game context - draw game screen
-    call DrawGame
+    call DrawGame       ;taake pause msg mit jaaye
     
 DisplayMessages:
-    ; Display confirmation messages
     call CenterText
     inc ebx
     mov edx, OFFSET yesNoMsg
@@ -635,7 +545,6 @@ DisplayMessages:
 
 WaitConfirmation:
     call ReadChar
-    
     cmp al, 'y'
     je ConfirmYes
     cmp al, 'Y'
@@ -647,12 +556,10 @@ WaitConfirmation:
     jmp WaitConfirmation
 
 ConfirmYes:
-    ; Show quitting animation
-    mov eax, boxTop
+    mov eax, boxTop     ;wohi cheez ab yes and no keliye krenge
     cmp eax, 0
     jg GameOverQuit
     
-    ; Normal game quit
     call DrawGame
     mov edx, OFFSET quitMsg
     call DisplayBelowMessage
@@ -661,7 +568,6 @@ ConfirmYes:
     jmp DoneConfirmation
     
 GameOverQuit:
-    ; Game over quit - redraw game over screen first, then show message
     call DrawGameOver
     mov ebx, boxTop
     add ebx, 10
@@ -672,12 +578,10 @@ GameOverQuit:
     jmp DoneConfirmation
 
 ConfirmNo:
-    ; Show resuming message with animation
     mov eax, boxTop
     cmp eax, 0
     jg GameOverNo
     
-    ; Normal game - resume with countdown
     call DrawGame
     mov edx, OFFSET resumingMsg
     call DisplayBelowMessage
@@ -686,83 +590,66 @@ ConfirmNo:
     jmp DoneConfirmation
     
 GameOverNo:
-    ; Game over - just redraw the game over screen (no animation needed)
-    call DrawGameOver
+    call DrawGameOver   ;if no bs game over ki screen dobara draw ho jayegi
     mov gameRestart, 1
 
 DoneConfirmation:
-    popad
     ret
 GenericConfirmation ENDP
 
-; ==================== COUNTDOWN DISPLAY ====================
 ShowCountdown PROC
-    pushad
 
     mov eax, white + (black * 16)
     call SetTextColor
     
-    ; ===== READY? =====
-    call DrawGame
-    mov edx, OFFSET readyMsg
+    call DrawGame               ;Drawing the game first
+    mov edx, OFFSET readyMsg    ;Displaying the messages in the below area
     call DisplayBelowMessage
     mov eax, 1000
     call Delay
 
-    ; ===== 3 =====
-    call DrawGame
     mov edx, OFFSET countdown3
     call DisplayBelowMessage
     mov eax, 600
     call Delay
 
-    ; ===== 2 =====
-    call DrawGame
     mov edx, OFFSET countdown2
     call DisplayBelowMessage
     mov eax, 600
     call Delay
 
-    ; ===== 1 =====
-    call DrawGame
     mov edx, OFFSET countdown1
     call DisplayBelowMessage
     mov eax, 600
     call Delay
 
-    ; ===== GO! =====
-    call DrawGame
     mov edx, OFFSET goMsg
     call DisplayBelowMessage
     mov eax, 700
     call Delay
 
-    popad
     ret
 ShowCountdown ENDP
 
-; ==================== INITIALIZATION ====================
-InitializeScreen PROC
+InitializeScreen PROC     ;sets the screen size and bottom of the p;ayable area
     call GetMaxXY
-    movzx eax, ax         ; rows (height)
+    movzx eax, ax         ;ax = rows
     mov screenHeight, eax
-    movzx edx, dx         ; columns (width)
+    movzx edx, dx         ;dx = columns
     mov screenWidth, edx
 
-    ; Set playableBottom = 80% of screen height
-    mov eax, screenHeight
+    mov eax, screenHeight   ;playable bottom is at 80% of the screen height
     mov edx, 0
     imul eax, 80
     mov ecx, 100
     div ecx
     mov playableBottom, eax
 
-    ; ===== Calculate reusable center position (below ground) =====
-    mov eax, screenHeight
-    dec eax                     ; last visible row
-    sub eax, playableBottom     ; height below ground
-    shr eax, 1                  ; half = middle of area
-    add eax, playableBottom
+    mov eax, screenHeight       ;calculating the center of the below-ground area 
+    dec eax                     ;last row
+    sub eax, playableBottom     ;top of that area se minus
+    shr eax, 1                  ;half = middle of area
+    add eax, playableBottom     ;utna neeche
     add eax, 1
     mov belowRow, eax
 
@@ -770,9 +657,9 @@ InitializeScreen PROC
     shr eax, 1
     mov belowCol, eax
 
-        ; === Calculate pipe spacing dynamically (33% of screen width) ===
-    mov eax, screenWidth
-    mov edx, 0
+   
+    mov eax, screenWidth    ;calculating the distance between pipes
+    mov edx, 0              ;since there are three and even distance hona chahye that's why we are keeping them 33% of the screen apart
     imul eax, 33
     mov ecx, 100
     div ecx
@@ -781,61 +668,44 @@ InitializeScreen PROC
     ret
 InitializeScreen ENDP
 
-
-; ==================== GAME SETUP ====================
 ResetGame PROC
-    mov gameOver, 0
-    mov score, 0
+    mov gameOver, 0     ;game is running
+    mov score, 0        ;score is initialized
 
-    mov boxTop,0
+    mov boxTop,0        ;wrna box baar baar draw ho rha tha
 
     mov eax, white + (black*16)
     call SetTextColor
 
-    ; Bird horizontal position = 30% screen width
-    mov eax, screenWidth
+    mov eax, screenWidth     ; Bird horizontal position = 25% screen width
     mov edx, 0
     imul eax, 25
     mov ecx, 100
-    div ecx             ; (MASM-friendly: div expects ecx in some assemblers; if your assembler needs different pattern, keep original)
-    ; If your assembler doesn't support div with ecx like that, keep your original arithmetic.
-    ; For safety: we'll use classic approach:
-    mov eax, screenWidth
-    mov edx, 0
-    imul eax, 25
-    mov ecx, 100
-    div ecx
+    div ecx             
     mov birdX, eax
 
-    ; Bird vertical position = 50% of playable area
-    mov eax, playableBottom
+    mov eax, playableBottom     ;Bird vertical position = 50% of playable area
     sub eax, playableTop
     shr eax, 1
     add eax, playableTop
     mov birdY, eax
 
-    ; Initialize pipes: set X positions spaced by PIPE_SPACING, set gaps and scored flags
-    mov ecx, NUM_PIPES
-    xor esi, esi             ; index = 0
+    mov ecx, NUM_PIPES     ;loop k thru we'll draw the pipes (3)
+    mov esi, 0             ; index = 0
 
 InitPipeLoop:
     ; pipeX[esi] = 50% screen width + spacing * index
     mov eax, screenWidth
-    shr eax, 1        ; divide by 2 -> 50%
-    mov ebx, esi
-    imul ebx, PIPE_SPACING
-    add eax, ebx
-    mov [pipeX + esi*4], eax
+    shr eax, 1          ;half
+    mov ebx, esi        ;copying index
+    imul ebx, PIPE_SPACING  ;multiplying with spacing taake col pata chal ske of each pipe
+    add eax, ebx            ;adding offset to the centerCol - the pipe drawing is starting from the center of the screen
+    mov [pipeX + esi*4], eax    ;storing the col pos of each pipe 
 
-
-    ; random gapTop for this pipe
-    push esi                 ; preserve index if RandomRange uses registers (optional)
-    call RandomRangeGapForReset
-    pop esi
+    call RandomRangeGapForReset ;random position for gap - result in eax
     mov [gapTop + esi*4], eax
 
-    ; reset scored flag
-    mov DWORD PTR [pipeScored + esi*4], 0
+    mov DWORD PTR [pipeScored + esi*4], 0   ;pipe hasn't been passed yet
 
     inc esi
     loop InitPipeLoop
@@ -843,54 +713,43 @@ InitPipeLoop:
     ret
 ResetGame ENDP
 
-; helper that returns gap top in EAX (uses playableTop/playableBottom)
 RandomRangeGapForReset PROC
-    mov eax, playableBottom
-    sub eax, playableTop
-    sub eax, 10
-    call RandomRange
+    mov eax, playableBottom     ;eax = random gap position - starting pos
+    sub eax, playableTop        ;any col between the playable area
+    sub eax, 10                 ;bcoz we don't want the gap to be outside the playable area
+    call RandomRange            
     add eax, playableTop
-    ; ensure minimum distance from bird if needed (optional)
-    cmp eax, birdY
-    jl ok
-    add eax, 3
-
-ok:
     ret
 RandomRangeGapForReset ENDP
 
-; ==================== BIRD PHYSICS ====================
 HandleFlap PROC
-    sub birdY, 2               ; flap up
-    mov eax, playableTop
+    sub birdY, 2           ;bird is naturally falling 1 row and flap par it is moving up 2 rows
+    mov eax, playableTop    ;taake jhatke na khaaye
     cmp birdY, eax      ; check ceiling
     jl SetToTop
     jmp DoneFlap
 SetToTop:
-    mov birdY, eax      ; clamp to ceiling
+    mov birdY, eax      ; clamp to ceiling taake ussey agay na jaye
     dec birdY
 DoneFlap:
-
     ret
 HandleFlap ENDP
 
 ApplyGravityToBird PROC
-    add birdY, 1
+    add birdY, 1            ;incrementing the bird's vertical pos
     mov eax, playableBottom
-    cmp birdY, eax
-    jle DoneGravity
-    mov birdY, eax
-DoneGravity:
-    
+    cmp birdY, eax          
+    jle DoneGravity         ;agar ground ko hit nhi kia to theek 
+    mov birdY, eax          ;wrna bring it back to the ground
+DoneGravity:   
     ret
 ApplyGravityToBird ENDP
 
-; ==================== PIPE MANAGEMENT ====================
-MovePipesLeft PROC
+MovePipesLeft PROC          ;pipe ki movement 
     mov ecx, NUM_PIPES
     mov esi, OFFSET pipeX
 MovePipesLeft_Loop:
-    dec DWORD PTR [esi]
+    dec DWORD PTR [esi]         ;moving each pipe 1 col to the left
     add esi, 4
     loop MovePipesLeft_Loop
     ret
@@ -898,40 +757,32 @@ MovePipesLeft ENDP
 
 CheckPipeReset PROC
     mov ecx, NUM_PIPES
-    xor esi, esi
+    mov esi, 0
 
 PipeResetLoop:
     mov eax, [pipeX + esi*4]
-    cmp eax, 0
+    cmp eax, 0          ;pipe screen se nikla to nhi from the left side
     jg NextPipeNoReset
 
-    ; Find rightmost pipe X to position this one after it
-    ; We'll scan array to find max X
-    mov edi, 0
-    xor ebx, ebx            ; ebx will hold max
-    mov edx, 0
+    mov ebx, 0            ; ebx will hold max col
     mov edx, NUM_PIPES
     dec edx
 FindRightmost:
-    mov eax, [pipeX + edx*4]
+    mov eax, [pipeX + edx*4]    ;we are comparing with each pipe ka col to find out konsa right-most pr hai and screen pr visible bhi hai
     cmp eax, ebx
-    jle NotGreater
-    mov ebx, eax
+    jle NotGreater      ;abhi nhi mila - move onto the next pipe
+    mov ebx, eax        ;that will be the new max
 NotGreater:
     dec edx
-    jns FindRightmost
+    jns FindRightmost   ;ye tb tk chalega jb tk edx is not -1
 
-    ; ebx = rightmost pipe X
-    add ebx, PIPE_SPACING
-    mov [pipeX + esi*4], ebx
+    add ebx, PIPE_SPACING       ;adding the distance from the right-most
+    mov [pipeX + esi*4], ebx    ;storing it as the new pipe ka col
 
-    ; reset scored flag
+    ; reset scored flag kionke usey abhi paas nhi kia
     mov DWORD PTR [pipeScored + esi*4], 0
 
-    ; new gap
-    push esi
-    call RandomRangeGapForReset
-    pop esi
+    call RandomRangeGapForReset ;calculating new gap pos for it and storing it
     mov [gapTop + esi*4], eax
 
 NextPipeNoReset:
@@ -941,24 +792,23 @@ NextPipeNoReset:
 CheckPipeReset ENDP
 
 
-
 CheckScore PROC
     mov ecx, NUM_PIPES
-    xor esi, esi
+    mov esi, 0
 
 ScoreLoop:
     mov eax, birdX
     mov ebx, [pipeX + esi*4]
     add ebx, pipeWidth
-    cmp eax, ebx
-    jl ScoreSkip
+    cmp eax, ebx        ;if bird is to the left of pipe ka right, no increment
+    jl ScoreSkip        ;mtlb bird has not fully passed the pipe yet
 
-    mov eax, [pipeScored + esi*4]
-    cmp eax, 1
-    je ScoreSkip
+    mov eax, [pipeScored + esi*4] 
+    cmp eax, 1      ;agar pipe ko paas kr chuka hai and uska increment bhi ho chuka hai then don't do it again
+    je ScoreSkip    ;wrna phir har baar usey check kr rha tha and increment kr rha tha in the main loop
 
-    inc score
-    mov DWORD PTR [pipeScored + esi*4], 1
+    inc score       ;now increment 1
+    mov DWORD PTR [pipeScored + esi*4], 1   ;that pipe has been passed
 
 ScoreSkip:
     inc esi
@@ -966,45 +816,39 @@ ScoreSkip:
     ret
 CheckScore ENDP
 
-
-
-
-; ==================== COLLISION ====================
 CheckGroundCollision PROC
     mov eax, birdY
-    add eax, 2
+    add eax, 2              ;checking the bottom of the bird (bird is of rows)
     cmp eax, playableBottom
-    jle NoGround
-    mov gameOver, 1
+    jle NoGround            ;not touching
+    mov gameOver, 1         ;game over
 NoGround:
     ret
 CheckGroundCollision ENDP
 
 CheckPipeCollision PROC
     mov ecx, NUM_PIPES
-    xor esi, esi
+    mov esi, 0
 
 PipeCollisionLoop:
-    ; ===== Horizontal check =====
-    ; birdX+2 inside [pipeX, pipeX+pipeWidth-1] ?
-    mov eax, birdX
+    mov eax, birdX          
     add eax, 2
     mov ebx, [pipeX + esi*4]
     cmp eax, ebx
-    jl NextPipeNoCollision        ; bird left of pipe
+    jl NextPipeNoCollision        ; bird left of pipe and not touching pipe
 
     mov eax, birdX
     mov ebx, [pipeX + esi*4]
     add ebx, pipeWidth
     dec ebx
     cmp eax, ebx
-    jge NextPipeNoCollision       ; bird right of pipe
+    jge NextPipeNoCollision       ; bird right of pipe and not touching pipe
 
-    ; ===== Vertical check =====
-    ; Special case: if gap starts at playableTop, allow ceiling flight
+    ; Vertical check 
+    ; Special case: if gap starts at playableTop, allow bird to hit the ceiling 
     mov eax, [gapTop + esi*4]
     cmp eax, playableTop
-    je SkipTopCheck               ; skip top collision if gap touches ceiling
+    je SkipTopCheck               ;skip krdo bcoz it is allowed
 
     ; normal top collision check
     mov eax, birdY
@@ -1015,7 +859,7 @@ PipeCollisionLoop:
 SkipTopCheck:
     ; bottom collision check
     mov eax, birdY
-    add eax, 2                    ; bird’s bottom (bird height = 3)
+    add eax, 2                    ; bird’s bottom k neeche wala hissa
     mov ebx, [gapTop + esi*4]
     add ebx, gapHeight
     cmp eax, ebx
@@ -1031,7 +875,7 @@ HitPipe:
     ret
 CheckPipeCollision ENDP
 
-; ==================== DRAWING ====================
+;main drawing PROC jo baar baar call hoga
 DrawGame PROC
     pushad
     call Clrscr
@@ -1039,16 +883,13 @@ DrawGame PROC
     call DrawBird
     call DrawPipes
     call DrawGround
-   
     popad
     ret
 DrawGame ENDP
 
 
-
 DrawUI PROC
-    ; Draw score
-    mov dh, 0
+    mov dh, 0   ;Prints the score in the top left corner
     mov dl, 2
     call Gotoxy
     mov edx, OFFSET scoreMsg
@@ -1056,19 +897,17 @@ DrawUI PROC
     mov eax, score
     call WriteDec
 
-    ; Draw instructions
-    mov ebx, 0
+    mov ebx, 0      ;prints --FLAPPY BIRD-- in the center of the top row
     mov edx, OFFSET instructions
     call CenterText
 
-    ; Draw separator line below UI
-    mov eax, playableTop
+    mov eax, playableTop    ;playable area k oopar aik separator line
     dec eax
     mov dh, al
     mov dl, 0
     call Gotoxy
     mov ecx, screenWidth
-    mov al, 0CDh           ; ? line
+    mov al, '='          
 DrawSeparator:
     call WriteChar
     loop DrawSeparator
@@ -1077,10 +916,10 @@ DrawSeparator:
 DrawUI ENDP
 
 DrawBird PROC
-    mov eax, yellow + (black * 16)
+    mov eax, yellow + (black * 16)  ;bird is in yellow
     call SetTextColor
 
-    mov eax, birdY
+    mov eax, birdY      ;bird ki starting pos we have already calculated in ResetGame
     mov dh, al
     mov eax, birdX
     mov dl, al
@@ -1103,48 +942,37 @@ DrawBird PROC
 DrawBird ENDP
 
 DrawPipes PROC
-    pushad
-
     mov ecx, NUM_PIPES
-    xor esi, esi
-
+    mov esi, 0
 DrawPipes_Loop:
-    mov eax, [pipeX + esi*4] 
+    mov eax, [pipeX + esi*4] ;checking pipe's col
     inc eax
     mov ebx, screenWidth
     cmp eax, ebx
-    jge SkipThisPipe      ; skip if off screen right
+    jge SkipThisPipe      ; skip if off screen ka right side
+    cmp eax, 0
+    jl SkipThisPipe       ; skipp if off screen ka left
 
-    ; ===== Draw top section =====
     mov eax, playableTop
-TopLoop:
+TopLoop:                        ;Drawing top half of the pipe
     mov ebx, [gapTop + esi*4]
     cmp eax, ebx
-    jge DoneTop
-    push eax              ; save current row
-    push esi
+    jge DoneTop          ;gap tk pohunch gaye to top part is done
     mov dh, al            ; row
     mov dl, BYTE PTR [pipeX + esi*4]  ; column start
-    call DrawSinglePipeSegment
-    pop esi
-    pop eax
+    call DrawSinglePipeSegment        ;Draws 2 block characters
     inc eax
     jmp TopLoop
-DoneTop:
 
-    ; ===== Draw bottom section =====
-    mov eax, [gapTop + esi*4]
-    add eax, gapHeight
+DoneTop:
+    mov eax, [gapTop + esi*4]   ;Drawing the bottom half
+    add eax, gapHeight          ;gap ki starting row mein add the gapHeight (abhi it is 8)
 BottomLoop:
-    cmp eax, playableBottom
-    jge SkipThisPipe
-    push eax
-    push esi
+    cmp eax, playableBottom     ;bottom tk phunch gaya hai to this is done
+    jge SkipThisPipe            ;skip mein and done mein aik hi kaam ho rha hai
     mov dh, al
     mov dl, BYTE PTR [pipeX + esi*4]
     call DrawSinglePipeSegment
-    pop esi
-    pop eax
     inc eax
     jmp BottomLoop
 
@@ -1152,7 +980,6 @@ SkipThisPipe:
     inc esi
     loop DrawPipes_Loop
 
-    popad
     ret
 DrawPipes ENDP
 
@@ -1163,14 +990,12 @@ DrawSinglePipeSegment PROC
     mov dl, al
     mov ecx, pipeWidth
 DrawSinglePipeSeg_Loop:
-    push ecx
     push edx
     call Gotoxy
     mov edx, OFFSET pipeChar
     call WriteString
     pop edx
     inc dl
-    pop ecx
     loop DrawSinglePipeSeg_Loop
     popad
     ret
@@ -1197,102 +1022,80 @@ DrawGround ENDP
 
 
 DrawGameOver PROC
-    pushad
 
-    ;=============================
-    ;  Setup + Dimensions
-    ;=============================
-    mov eax, screenWidth
-    mov ebx, 60
+    mov eax, screenWidth    ;setting up the game over box
+    mov ebx, 60             ;width will be 60% of the screen ki width
     imul eax, ebx
     cdq
     mov ebx, 100
     idiv ebx
-    mov boxWidth, eax         ; 60% of screen width
+    mov boxWidth, eax         
 
-    mov eax, screenHeight
+    mov eax, screenHeight       
     mov ebx, 40
     imul eax, ebx
     cdq
     mov ebx, 100
     idiv ebx
-    mov boxHeight, eax        ; 40% of screen height
+    mov boxHeight, eax        ; height is 40% of screen height
 
-    ; calculate top-left corner
-    mov eax, screenWidth
+    mov eax, screenWidth    ;calculating the left col 
     sub eax, boxWidth
-    shr eax, 1
+    shr eax, 1              ;2 isliye kionke aik right and aik left isliye half lia hai
     mov boxLeft, eax
 
-    mov eax, screenHeight
+    mov eax, screenHeight   ;similarly for the top of the box
     sub eax, boxHeight
     shr eax, 1
     mov boxTop, eax
 
-    ; bottom/right edges
-    mov eax, boxTop
+    mov eax, boxTop     ;baaki dono corners bhi set krdiye
     add eax, boxHeight
     mov boxBottom, eax
     mov eax, boxLeft
     add eax, boxWidth
     mov boxRight, eax
 
-    ;=============================
-    ;  Fill Box Background (black)
-    ;=============================
-    mov eax, black + (black * 16)
+
+    mov eax, black + (black * 16)   ;box ka background colour is black so we need to print spaces jo k back se likhe jaayeinge
     call SetTextColor
 
-    mov ecx, boxHeight
-    ; sub ecx, 2                ; leave border rows alone
+    mov ecx, boxHeight          ;printing row wise and incrementing column
     mov dh, BYTE PTR boxTop
-FillRowLoop:
-        inc dh                ; move to next row (inside box)
-        cmp dh, BYTE PTR boxBottom
-        jge DoneFill
+FillColLoop:
+        inc dh                      ;starting from one row below the top (for border) - and incrementing row after every loop
+        cmp dh, BYTE PTR boxBottom  
+        jge DoneFill                ;full neeche tk pohunch gaye to ho gya
         mov dl, BYTE PTR boxLeft
-        inc dl                ; inside box, skip left border
+        inc dl                      ;same here as well - skip left border
         mov ebx, boxWidth
-        ; sub ebx, 2            ; skip right border
-    FillColLoop:
         call Gotoxy
+    FillRowLoop:
         mov al, ' '           ; space = black fill
         call WriteChar
-        inc dl
         dec ebx
-        jnz FillColLoop
-        loop FillRowLoop
+        jnz FillRowLoop
+        loop FillColLoop
+
 DoneFill:
+    mov eax, white + (black * 16)
+    call SetTextColor
 
-
-    ; ===== Set border color =====
-mov eax, white + (black * 16)
-call SetTextColor
-
-; --- Draw Top Border ---
-mov dh, BYTE PTR boxTop
-mov dl, BYTE PTR boxLeft
-call Gotoxy
-mov al, '='
-call WriteChar
-
-mov ecx, boxWidth
-sub ecx, 2
-TopLine:
+    mov dh, BYTE PTR boxTop     ;drawing the top border of the box
+    mov dl, BYTE PTR boxLeft
+    call Gotoxy
     mov al, '='
+
+    mov ecx, boxWidth
+TopLine:
     call WriteChar
     loop TopLine
-mov al, '='
-call WriteChar
 
-; --- Draw Sides (clean double-bar look) ---
-mov ecx, boxHeight
-sub ecx, 1
-mov dh, BYTE PTR boxTop
+    mov ecx, boxHeight      ;excluding the top+bottom rows
+    sub ecx, 1              ;only 1 not 2 because loop k ander inital increment bhi hai
+    mov dh, BYTE PTR boxTop
 SideLoop:
-    inc dh                        ; move down one row
-    
-    ; Left border
+    inc dh                       ;left side
     mov dl, BYTE PTR boxLeft
     call Gotoxy
     mov al, '|'
@@ -1300,8 +1103,7 @@ SideLoop:
     mov al, '|'
     call WriteChar
 
-    ; Right border
-    mov dl, BYTE PTR boxRight
+    mov dl, BYTE PTR boxRight       ;right side
     sub dl, 1                     ; shift slightly left to fit inside box
     call Gotoxy
     mov al, '|'
@@ -1312,37 +1114,26 @@ SideLoop:
     loop SideLoop
 
 
-; --- Draw Bottom Border ---
-mov dh, BYTE PTR boxBottom
-mov dl, BYTE PTR boxLeft
-call Gotoxy
-mov al, '='
-call WriteChar
-
-mov ecx, boxWidth
-sub ecx, 2
-BottomLine:
+    mov dh, BYTE PTR boxBottom  ;bottom row
+    mov dl, BYTE PTR boxLeft
+    call Gotoxy
     mov al, '='
-    call WriteChar
-    loop BottomLine
-mov al, '='
-call WriteChar
+
+    mov ecx, boxWidth
+    BottomLine:
+        call WriteChar
+        loop BottomLine
 
 
-    ;=============================
-    ;  Centered Text Inside Box
-    ;=============================
-    mov eax, yellow + (black * 16)
+    mov eax, yellow + (black * 16)  ;text inside box will be in yellow
     call SetTextColor
 
-    ; Calculate message start positions
-        mov ebx, boxTop
+    mov ebx, boxTop             ;game over ka title will be closer to the top but horzontally in the center
     add ebx, 2
     mov edx, OFFSET gameOverMsg
     call CenterText
 
-    ; For score, we need special handling since we write the number too
-    mov ebx, boxTop
+    mov ebx, boxTop             ;baaki sb phit normally print hoga
     add ebx, 5
     mov edx, OFFSET scoreMsg
     call CenterText
@@ -1354,7 +1145,6 @@ call WriteChar
     mov edx, OFFSET replayMsg
     call CenterText
 
-    popad
     ret
 DrawGameOver ENDP
 END
