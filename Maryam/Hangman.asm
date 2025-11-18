@@ -1,21 +1,22 @@
 INCLUDE Irvine32.inc
 
 .data
-; Hangman visual stages
-spc EQU 32
-trc EQU 187
-tlc EQU 201
-blc EQU 200
-vl EQU 186
-hl EQU 205
-t_up EQU 202
+;all the characters used for drawing the hangman (double line)
+spc EQU 32      ;space
+trc EQU 187     ;top right corner
+tlc EQU 201     ;top left corner
+blc EQU 200     ;bottom left corner
+vl EQU 186      ;vertical line
+hl EQU 205      ;horizontal line
+t_up EQU 202    ;ulta T
 
-screen_width DWORD ?
+screen_width DWORD ?    ;screen dimensions and center wali cheezein
 screen_height DWORD ?
 center_col DWORD ?
 center_row DWORD ?
-word_start_col DWORD ?
+word_start_col DWORD ?  ;starting col for words (jo guess honge)
 
+;each stage of hangman
 hangman0 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
          BYTE spc,spc,vl,spc,spc,spc,spc,spc,vl,0dh,0ah
          BYTE spc,spc,vl,0dh,0ah
@@ -81,34 +82,31 @@ hangman6 BYTE spc,spc,tlc,hl,hl,hl,hl,hl,trc,0dh,0ah
 
 hangman_stages DWORD hangman0, hangman1, hangman2, hangman3, hangman4, hangman5, hangman6
 
-; Welcome screen content
+; Welcome screen title and msgs
 welcome_title1 BYTE " _  _   __   __ _   ___  _  _   __   __ _ ",0
 welcome_title2 BYTE "/ )( \ / _\ (  ( \ / __)( \/ ) / _\ (  ( \",0
 welcome_title3 BYTE ") __ (/    \/    /( (_ \/ \/ \/    \/    /",0
 welcome_title4 BYTE "\_)(_/\_/\_/\_)__) \___/\_)(_/\_/\_/\_)__)",0
-
 welcome_msg1   BYTE "WELCOME, BRAVE GUESSER!",0
 welcome_msg2   BYTE "Ready to save a virtual life?",0
 welcome_msg3   BYTE "Guess the word before the stick figure meets its doom!",0
-
 menu_option1   BYTE "[1] - PLAY GAME",0
 menu_option2   BYTE "[2] - INSTRUCTIONS",0
 menu_option3   BYTE "[3] - RETURN TO MAIN MENU",0
 
+;instruction screen k msgs
 instructions1  BYTE "=== HOW TO PLAY ===",0
 instructions2  BYTE "1. Guess letters one at a time",0
 instructions3  BYTE "2. Each wrong guess adds a body part to the hangman",0
 instructions4  BYTE "3. 6 wrong guesses and... GAME OVER!",0
 instructions5  BYTE "4. Guess all letters correctly to WIN!",0
-
 press_key_msg  BYTE "Press BACKSPACE to go back",0
 
-; Game variables
-mistakes    BYTE 0
-success_guess_counter BYTE 0
+mistakes BYTE 0     ;counts number of incorrect guesses
+success_guess_counter BYTE 0    ;correct guesses
+str_guess BYTE 26 DUP(0)    ;all the letters that have been guessed
 
-; Multiple words to guess
-word1 BYTE "COMPUTER",0
+word1 BYTE "COMPUTER",0     ;word bank
 word2 BYTE "PROGRAMMING",0
 word3 BYTE "LANGUAGE",0
 word4 BYTE "ASSEMBLY",0
@@ -120,12 +118,12 @@ word8 BYTE "SOFTWARE",0
 word_list DWORD word1, word2, word3, word4, word5, word6, word7, word8
 word_count = 8
 
-str_word BYTE 20 DUP(0)
-str_word_msg BYTE "The word was: ",0
+str_word BYTE 20 DUP(0)     ;buffer to store currently selected word
+str_word_msg BYTE "The word was: ",0    ;in case player guess na krpaaya then that word will be shown
 
-last_word_index DWORD -1
+last_word_index DWORD -1    ;taake same word consecutively na aajaye
 
-; Messages
+;all the msgs
 msg_restart     BYTE "Press [R] to Replay or [M] for Menu",0
 msg_won         BYTE "CONGRATULATIONS! YOU WON!",0
 msg_lost        BYTE "GAME OVER! YOU LOSE!",0
@@ -135,10 +133,9 @@ prompt_msg      BYTE "Enter your guess: ",0
 wrong_msg       BYTE "Incorrect! Try again.",0
 correct_msg     BYTE "Correct guess!",0
 attempts_msg    BYTE "Lives remaining: ",0
+hint_msg        BYTE "Hint: It is related to Computer Science",0
 
-str_guess BYTE 26 DUP(0)
-
-; Colors
+;all the colours beng used
 title_color     DWORD lightcyan + (blue * 16)
 hangman_color   DWORD white + (black * 16)
 word_color      DWORD yellow + (black * 16)
@@ -154,9 +151,8 @@ menu_color      DWORD lightgreen + (black * 16)
 instructions_color DWORD lightblue + (black * 16)
 
 .code
-
 Hangman PROC
-    call InitializeScreenForSize
+    call InitializeScreenForSize    ;setting the dimensions and center wali cheezein
     call HangmanMenu
     ret
 Hangman ENDP
@@ -166,9 +162,8 @@ MenuLoop:
     call Clrscr
     call DisplayWelcomeScreen
     call DisplayMenuOptions
-    
+
     call ReadChar
-    
     cmp al, '1'
     je PlayGame
     cmp al, '2'
@@ -197,8 +192,8 @@ ReturnToMain:
     ret
 HangmanMenu ENDP
 
-GetLowerMidRow PROC
-    mov eax, center_row
+GetLowerMidRow PROC         ;ouput: eax = calculated row
+    mov eax, center_row     
     add eax, screen_height
     shr eax, 1
     ret
@@ -206,44 +201,33 @@ GetLowerMidRow ENDP
 
 CenterTextAtRow PROC
     ; Input: EBX = row, EDX = message offset
-    push eax
-    push ebx
-    push ecx
-    push edx
+    pushad
+    mov ecx, edx    ;saving bcoz edx will be modified
     
-    ; Save message offset
-    mov ecx, edx
+    call StrLength      ; length in eax
+    shr eax, 1          ; half of length
     
-    ; Get string length
-    call StrLength      ; length in EAX
-    shr eax, 1          ; divide by 2
-    
-    ; Calculate centered position
     mov edx, center_col
     sub edx, eax
-    mov dl, dl          ; column in DL
-    mov dh, bl          ; row in DH
+    mov dl, dl          ; column in dl
+    mov dh, bl          ; row in dh
     
-    ; Set cursor position and write string
     call Gotoxy
     mov edx, ecx        ; restore message offset
     call WriteString
     
-    pop edx
-    pop ecx
-    pop ebx
-    pop eax
+    popad
     ret
 CenterTextAtRow ENDP
 
 DisplayWelcomeScreen PROC
-    mov eax, welcome_color
+    mov eax, welcome_color  ;displaying the welcome title msgs and hangman
     call SetTextColor
     
     mov ebx, center_row
     sub ebx, 12
     mov edx, OFFSET welcome_title1
-    call CenterTextAtRow
+    call CenterTextAtRow    ;ebx mein row and edx mein msg offset
   
     inc ebx
     mov edx, OFFSET welcome_title2
@@ -257,7 +241,6 @@ DisplayWelcomeScreen PROC
     mov edx, OFFSET welcome_title4
     call CenterTextAtRow
 
-    
     mov eax, menu_color
     call SetTextColor
     
@@ -278,7 +261,7 @@ DisplayWelcomeScreen PROC
     call SetTextColor
 
     mov esi, OFFSET hangman2
-    call DisplayHangmanAt
+    call DisplayHangmanAt       ;esi mein offset and ebx mein row
 
 
 HangmanDone:
@@ -286,7 +269,7 @@ HangmanDone:
 DisplayWelcomeScreen ENDP
 
 DisplayMenuOptions PROC
-    mov eax, menu_color
+    mov eax, menu_color     ;displaying the options a bit to the right bcoz of the hangman
     call SetTextColor
     
     mov ebx, center_row
@@ -317,15 +300,14 @@ DisplayMenuOptions PROC
 DisplayMenuOptions ENDP
 
 DisplayInstructions PROC
-    call Clrscr
-    
+    call Clrscr                 ;Displaying instructions in the center and the prompt to go back thora sa to the right bcoz of the hangman
     mov eax, instructions_color
     call SetTextColor
     
     mov ebx, center_row
     sub ebx, 12
     mov edx, OFFSET instructions1
-    call CenterTextAtRow
+    call CenterTextAtRow        ;ebx mein row and edx mein offset
 
     add ebx, 2
     mov edx, OFFSET instructions2
@@ -346,10 +328,8 @@ DisplayInstructions PROC
     mov eax, hangman_color
     call SetTextColor
 
-    ; Replace all the hangman display code with:
     mov esi, OFFSET hangman6
-
-    call DisplayHangmanAt
+    call DisplayHangmanAt       ;esi mein offset and ebx mein row
 
     mov eax, menu_color
     call SetTextColor
@@ -357,21 +337,18 @@ DisplayInstructions PROC
     mov eax, center_col
     add eax, 5
     mov dl, al
-    
     add ebx, 7
     mov dh, bl
     call Gotoxy
     mov edx, OFFSET press_key_msg
     call WriteString
 
-
-    ; Wait for backspace key only
 WaitForBackspace:
     call ReadChar
-    cmp al, 8  ; Backspace ASCII code
+    cmp al, 08h         ;backspace press check nhi to keep on waiting 
     jne WaitForBackspace
 
-    mov eax, 800
+    mov eax, 800        ;hogya to go back
     call Delay
     ret
 DisplayInstructions ENDP
@@ -379,12 +356,12 @@ DisplayInstructions ENDP
 PlayHangmanGame PROC
 GameReplayLoop:
     call Clrscr
-    call InitializeScreenForSize
-    call InitializeGame
+    call InitializeScreenForSize    ;setting size related things
+    call InitializeGame         ;resetting game related things
     call GameLoop
 
-WaitForChoice:
-    call WaitForKey  ; Returns choice in AL
+WaitForChoice:       ;after game over wali cheez
+    call WaitForKey  ;Returns choice in AL
     cmp al, 'R'
     je GameReplayLoop
     cmp al, 'r'
@@ -393,14 +370,14 @@ WaitForChoice:
     je ReturnToMenu
     cmp al, 'm'
     je ReturnToMenu
-    jmp WaitForChoice  ; Invalid key, wait again
+    jmp WaitForChoice  ;Invalid key, wait again
 
 ReturnToMenu:
     ret
 PlayHangmanGame ENDP
 
 InitializeScreenForSize PROC
-    call GetMaxXY
+    call GetMaxXY           ;calculating the dimensions and center wali cheezein
     movzx eax, ax
     mov screen_height, eax
     shr eax, 1
@@ -412,16 +389,14 @@ InitializeScreenForSize PROC
     ret
 InitializeScreenForSize ENDP
 
-ClearMessageLine PROC
-    pushad
+ClearMessageLine PROC   ;takes dh = row as input
     mov dl, 0
     call Gotoxy
     mov ecx, screen_width
-ClearLoop:
+ClearLoop:              ;poori ki poori row is cleared
     mov al, ' '
     call WriteChar
     loop ClearLoop
-    popad
     ret
 ClearMessageLine ENDP
 
@@ -430,7 +405,7 @@ InitializeGame PROC
     mov mistakes, 0
     mov success_guess_counter, 0
     
-        mov ecx, 26
+    mov ecx, 26             ;emptyting the string that holds already guessed letter for new game
     mov esi, OFFSET str_guess
     mov al, 0
 ClearGuess:
@@ -440,11 +415,11 @@ ClearGuess:
     
     call SelectRandomWord
     
-    mov eax, title_color
+    mov eax, title_color    ;displaying everything the title, attempts hangman and word blanks
     call SetTextColor
     mov ebx, 1
     mov edx, OFFSET msg_top
-    call CenterTextAtRow
+    call CenterTextAtRow    ;ebx mein row and edx mein offset
     
     call DisplayAttempts
     call DisplayHangman
@@ -453,58 +428,56 @@ ClearGuess:
 InitializeGame ENDP
 
 DisplayAttempts PROC
-    mov eax, attempts_color
+    mov eax, attempts_color     ;setting colour and printing the msg for remaining attempts
     call SetTextColor
     mov ebx, 4
     mov edx, OFFSET attempts_msg
     call CenterTextAtRow
-    
-    movzx eax, mistakes
-    mov ebx, 6
-    sub ebx, eax
-    mov eax, ebx
+   
+    movzx ebx, mistakes     ;calculating remaining lives and printing it 
+    mov eax, 6
+    sub eax, ebx
     call WriteDec
+
+    mov eax, yellow + (black*16)
+    call SetTextColor
+    mov ebx, 6
+    mov edx, OFFSET hint_msg
+    call CenterTextAtRow
     ret
 DisplayAttempts ENDP
 
 SelectRandomWord PROC
-    pushad
     
 TryAgain:
     call Randomize
-    mov eax, word_count
+    mov eax, word_count     ;any random valid index 
     call RandomRange
-    
-    ; Check if this is the same as last word
-    cmp eax, last_word_index
+    cmp eax, last_word_index    ;if it is the same as the previous one choose another one
     je TryAgain
     
-    ; Store as last used word
-    mov last_word_index, eax
+    mov last_word_index, eax    ;updating the last one used
     
-    ; Get the word pointer and copy it
-    mov esi, eax
+    mov esi, eax        ;using it as index and multiplying by 4 bcoz of DWORD
     shl esi, 2
     mov esi, word_list[esi]
     mov edi, OFFSET str_word
     
 CopyLoop:
-    mov al, [esi]
+    mov al, [esi]       ;storing it as the selected word
     mov [edi], al
     inc esi
     inc edi
     cmp al, 0
     jne CopyLoop
-    
-    popad
+
     ret
 SelectRandomWord ENDP
 
 GetStringLength PROC
-    ; Input: ESI = string offset
-    ; Output: ECX = length
-    push esi
-    mov ecx, 0
+    ; Input: esi = string offset
+    ; Output: ecx = length
+    mov ecx, 0      ;counting number of letters in the word
 CountLoop:
     cmp byte ptr [esi], 0
     je DoneCount
@@ -512,76 +485,70 @@ CountLoop:
     inc esi
     jmp CountLoop
 DoneCount:
-    pop esi
     ret
 GetStringLength ENDP
 
 DisplayHangman PROC
-    movzx eax, mistakes
+    movzx eax, mistakes     ;jitni mistakes uske hisaab se stage
     mov esi, hangman_stages[eax*4]
-    mov eax, center_row
-    sub eax, 8
+    mov eax, center_row     ;center se thora sa oopar and to the left
+    sub eax, 7
     mov dh, al
     mov eax, center_col
     sub eax, 5
     mov dl, al
     
-    pushad
     mov eax, hangman_color
     call SetTextColor
-    mov bl, dl
+    mov bl, dl          ;saving starting col taake baar baar na calculate krna pre
     call Gotoxy
 
 DisplayHangmanLoop:
     mov al, [esi]
-    cmp al, 0
+    cmp al, 0           ;poora hangman display krdia hai
     je DisplayHangmanDone
-    cmp al, 0Dh
+    cmp al, 0Dh             ;aik line hogyi (0D means carriage return)
     je DisplayHangmanNewLine
-    call WriteChar
+    call WriteChar          ;abhi nhi hui
     jmp DisplayHangmanContinue
 
 DisplayHangmanNewLine:
-    inc esi
-    cmp byte ptr [esi], 0Ah
+    inc esi             ;skip the 0Dh
+    cmp byte ptr [esi], 0Ah     ;if it is 0A skip it as well and print next wala char wrna abhi row complete nhi hui
     jne DisplayHangmanContinue
     inc esi
     inc dh
-    mov dl, bl
+    mov dl, bl          ;resetting col to starting
     call Gotoxy
     jmp DisplayHangmanLoop
 
-DisplayHangmanContinue:
+DisplayHangmanContinue:     ;continue printing the row
     inc esi
     jmp DisplayHangmanLoop
 
-DisplayHangmanDone:
-    popad
+DisplayHangmanDone:     ;hogya
     ret
 DisplayHangman ENDP
 
-; Generic procedure to display hangman
-; Input: ESI = offset of hangman stage, EBX = row to start drawing
-DisplayHangmanAt PROC
-    pushad
+DisplayHangmanAt PROC   ;only for the welcome screen wale
+    pushad      ; Input: ESI = offset of hangman stage, EBX = row to start drawing
 
     mov eax, hangman_color
     call SetTextColor
 
-    ; -------- Correct column calculation (screen_width / 3 + 3) --------
     mov eax, screen_width
-    mov ebx, 3            ; divisor must be EBX
+    mov ebx, 3
     mov edx, 0
-    div ebx               ; eax = screen_width / 3
-    sub eax, 3            ; small offset to right
-    mov dl, al            ; DL = starting column
+    div ebx               ;1/3rd of the screen width
+    sub eax, 3            ;a little to the right
+    mov dl, al
 
     mov eax, center_row
-    mov dh, al            ; DH = original row
+    mov dh, al
     call Gotoxy           ; Go to starting position
-    mov bh, dl            ; Save starting column in BH for line resets
+    mov bh, dl          ; saving starting column in BH for line resets
 
-DisplayHangmanLoop:
+DisplayHangmanLoop:     ;same jo DisplayHangman mein hua tha wohi
     mov al, [esi]
     cmp al, 0
     je DisplayHangmanDone
@@ -598,9 +565,8 @@ DisplayHangmanNewLine:
     cmp byte ptr [esi], 0Ah
     jne DisplayHangmanContinue
     inc esi
-
     inc dh                ; move to next line
-    mov dl, bh            ; reset column to original
+    mov dl, bh            ; reset column to starting col
     call Gotoxy
     jmp DisplayHangmanLoop
 
@@ -614,31 +580,31 @@ DisplayHangmanDone:
 DisplayHangmanAt ENDP
 
 
-DisplayWordLines PROC
+DisplayWordLines PROC       ;jo bhi selected word hai uske dashes
     mov eax, word_color
     call SetTextColor
     
-    mov eax, center_row
+    mov eax, center_row     ;center se thora neeche
     add eax, 3
     mov dh, al
     
     mov esi, OFFSET str_word
-    call GetStringLength
+    call GetStringLength    ;gives length in ecx - esi mein offset
 
     mov ebx, ecx
-    mov eax, center_col
+    mov eax, center_col     ;yahaan /2 krne ki zaroorat nhi bcoz already 2 times ziada hai bcoz of the spaces
     sub eax, ebx
     mov word_start_col, eax
     mov dl, al
     call Gotoxy
     
-    mov esi, OFFSET str_word
-DisplayLoop:
+    mov esi, OFFSET str_word    ;ecx to set hai hi
+DisplayLoop:        ;jitne letters utne blanks
     mov al, [esi]
     cmp al, 0
     je DoneDisplay
     mov al, '_'
-    call WriteChar
+    call WriteChar  ;aik col chor kr blank taake acha lage
     mov al, ' '
     call WriteChar
     inc esi
@@ -649,62 +615,50 @@ DisplayWordLines ENDP
 
 GameLoop PROC
 GuessLoop:
-    call GetPlayerInput
-    call ProcessGuess
-    call CheckGameStatus
+    call GetPlayerInput     ;player ne konsa letter enter kia hai (upper case) in al
+    call ProcessGuess       ;letter check and update wala saara kaam
+    call CheckGameStatus    ;checking if the player has won or lost or not yet - output in al (1,2,0)
     cmp al, 1
-    je GameWon
+    je GameWon      ;1 means won
     cmp al, 2
-    je GameLost
+    je GameLost     ;2 means lost
     jmp GuessLoop
 
 GameWon:
-    call DisplayWinMessage
+    call DisplayWinMessage      ;unke hisaab se msgs
     jmp ExitGame
 
 GameLost:
     call DisplayLoseMessage
 
 ExitGame:
-    ;call WaitForKey
     ret
 GameLoop ENDP
 
-GetPlayerInput PROC
+GetPlayerInput PROC     ;ouput: eax = upper case letter (jo bhi player ne enter kia hai)
 GetInput:
     mov eax, center_row
     add eax, 5
-    mov dh, al  
-    mov eax, center_col
-    sub eax, 20
-    mov dl, al
-    call Gotoxy
+    mov dh, al              ;takes dh as input (for row)
+    call ClearMessageLine       ;keeps on immediately clearing if invalid input
     
-    mov ecx, 40
-ClearArea:
-    mov al, ' '
-    call WriteChar
-    loop ClearArea
-    
-    mov eax, prompt_color
+    mov eax, prompt_color       ;printing the prompt and the letter chosen
     call SetTextColor
     mov ebx, center_row
     add ebx, 5
     mov edx, OFFSET prompt_msg
-    call CenterTextAtRow
+    call CenterTextAtRow        ;ebx mein row and edx mein offset
     
     call ReadChar
-    
-    ; Display the entered char next to the prompt
     call WriteChar
     
     cmp al, 'a'
     jb SkipConvert
-    cmp al, 'z'
+    cmp al, 'z'         ;if a lower case letter is entered convert it a upper case
     ja SkipConvert
     sub al, 32
 SkipConvert:
-    cmp al, 'A'
+    cmp al, 'A'     ;if not even that wait for input again
     jb GetInput
     cmp al, 'Z'
     ja GetInput
@@ -712,79 +666,61 @@ SkipConvert:
 GetPlayerInput ENDP
 
 ProcessGuess PROC
-    mov esi, OFFSET str_guess
+    mov esi, OFFSET str_guess   ;load the already guessed characters
     mov ecx, 26
 CheckGuessed:
-    cmp byte ptr [esi], 0
+    cmp byte ptr [esi], 0   ;if it in empty then it hasn't been guessed technically
     je NotGuessed
-    cmp [esi], al
-    je AlreadyGuessed
+    cmp [esi], al           ;al has the current letter from GetPlayerINput PROC
+    je AlreadyGuessed       ;check if it is already guessed or not from the whole string 
     inc esi
     loop CheckGuessed
     
 NotGuessed:
-    mov esi, OFFSET str_guess
-FindEmpty:
-    cmp byte ptr [esi], 0
-    je FoundEmpty
-    inc esi
-    jmp FindEmpty
-FoundEmpty:
-    mov [esi], al
-    
-    mov esi, OFFSET str_word
-    mov ebx, 0
+    mov [esi], al 
+    mov esi, OFFSET str_word    ;now looping through the selected word for that letter
+    mov ebx, 0               ;flag for found or not found
     mov ecx, 0
+
 CheckWord:
     mov dl, [esi]
-    cmp dl, 0
+    cmp dl, 0       ;end of word reached
     je CheckDone
-    cmp dl, al
+    cmp dl, al      ;if matched flag = 1
     jne NotMatch
     mov ebx, 1
-    push eax
-    push ecx
-    call RevealLetter
-    pop ecx
-    pop eax
-NotMatch:
+    call RevealLetter   ;reveal that letter from the blank
+NotMatch:               ;it takes ecx as input (letter found pos = ecx)
     inc esi
     inc ecx
     jmp CheckWord
     
 CheckDone:
-    mov eax, center_row
-    add eax, 7
-    mov dh, al
-    call ClearMessageLine
-    
     cmp ebx, 1
     je CorrectGuess
     
-    inc mistakes
-    call DisplayHangman
-    call DisplayAttempts
+    inc mistakes            ;ghalat guess kia
+    call DisplayHangman     ;update konsa hangman display krna hai
+    call DisplayAttempts    ;update remaining lives
     mov eax, wrong_color
     call SetTextColor
     mov ebx, center_row
     add ebx, 7
-    mov edx, OFFSET wrong_msg
+    mov edx, OFFSET wrong_msg   ;appropriate msg
     call CenterTextAtRow
     
-    mov eax, 500
+    mov eax, 500            ;thora sa ruk kr erase that
     call Delay
     
     mov eax, center_row
     add eax, 7
     mov dh, al
-    call ClearMessageLine
+    call ClearMessageLine   ;dh as inpur (row)
     
-    mov ecx, -1
-    call RevealLetter
     ret
     
 CorrectGuess:
-    mov eax, correct_color
+    mov eax, correct_color      ;same here as well
     call SetTextColor
     mov ebx, center_row
     add ebx, 7
@@ -799,11 +735,9 @@ CorrectGuess:
     mov dh, al
     call ClearMessageLine
     
-    mov ecx, -1
-    call RevealLetter
     ret
     
-AlreadyGuessed:
+AlreadyGuessed:                 ;and here too
     mov eax, already_color
     call SetTextColor
     mov ebx, center_row
@@ -819,91 +753,43 @@ AlreadyGuessed:
     mov dh, al
     call ClearMessageLine
     
-    mov ecx, -1
-    call RevealLetter
     mov al, 0
     ret
 ProcessGuess ENDP
 
 RevealLetter PROC
-    pushad
-    
-    cmp ecx, -1
-    je RedrawAll
-    
+    pushad      ;takes ecx mein input (which letter at which position found)
+
     mov eax, ecx
-    shl eax, 1
+    shl eax, 1              ;bcoz of spaces
     mov ebx, word_start_col
-    add ebx, eax
+    add ebx, eax            ;correct col on the screen
     mov dl, bl
-    mov eax, center_row
+    mov eax, center_row     ;center se thora neeche
     add eax, 3
     mov dh, al
     call Gotoxy
 
-    mov esi, OFFSET str_word
-    add esi, ecx
-    mov al, [esi]
     mov eax, word_color
     call SetTextColor
+    mov esi, OFFSET str_word
+    add esi, ecx                ;letter pos 
+    mov al, [esi]               ;jo letter correctly guess kia hai that is printed
     call WriteChar
 
-    inc success_guess_counter
-    jmp DoneReveal
-    
-RedrawAll:
-    mov eax, word_color
-    call SetTextColor
-    mov esi, OFFSET str_word
-    mov ecx, 0
-    
-RedrawLoop:
-    mov al, [esi]
-    cmp al, 0
-    je DoneReveal
-    push esi
-    mov edi, OFFSET str_guess
-    mov bl, al
-CheckIfGuessed:
-    mov dl, [edi]
-    cmp dl, 0
-    je NotGuessedYet
-    cmp dl, bl
-    je FoundGuessed
-    inc edi
-    jmp CheckIfGuessed
-    
-FoundGuessed:
-    mov eax, ecx
-    shl eax, 1
-    mov ebx, word_start_col
-    add ebx, eax
-    mov dl, bl
-    mov eax, center_row
-    add eax, 3
-    mov dh, al
-    call Gotoxy
-    mov al, [esi]
-    call WriteChar
-    
-NotGuessedYet:
-    pop esi
-    inc esi
-    inc ecx
-    jmp RedrawLoop
-    
-DoneReveal:
+    inc success_guess_counter   ;incrementing the no of correctly guessed letters
+
     popad
     ret
 RevealLetter ENDP
 
-CheckGameStatus PROC
+CheckGameStatus PROC            ;output: al = 0(continue), 1(won), 2(lost)
     mov esi, OFFSET str_word
-    call GetStringLength
-
+    call GetStringLength        ;comparing length and how many correctly guess krliye hain
+                                ;length in ecx
     mov al, success_guess_counter
-    cmp al, cl
-    jge Won
+    cmp al, cl              
+    jge Won             ;if equal won wrna comparing mistakes with total lives (checkign if lost)
     cmp mistakes, 6
     jge Lost
     mov al, 0
@@ -919,28 +805,27 @@ CheckGameStatus ENDP
 DisplayWinMessage PROC
     mov eax, win_color
     call SetTextColor
-    call GetLowerMidRow
+    call GetLowerMidRow         ;getting center row of the lower half in eax
     mov ebx, eax
     mov edx, OFFSET msg_won
-    call CenterTextAtRow
+    call CenterTextAtRow        ;printing win msg
     ret
 DisplayWinMessage ENDP
 
 DisplayLoseMessage PROC
     mov eax, lose_color
     call SetTextColor
-    call GetLowerMidRow
+    call GetLowerMidRow         ;getting row in eax
     mov ebx, eax
-    mov edx, OFFSET msg_lost
+    mov edx, OFFSET msg_lost    ;same with lost msg
     call CenterTextAtRow
     
-    mov esi, OFFSET str_word
+    mov esi, OFFSET str_word    ;getting length of the word in ecx
     call GetStringLength
     
-    ; Calculate row for "The word was:" message (middle of lower half + 1)
     call GetLowerMidRow
     mov dh, al
-    inc dh
+    inc dh                  ;printing the word msg in the row below lost msg with the word
     mov eax, center_col
     mov ebx, LENGTHOF str_word_msg
     add ebx, ecx
@@ -955,20 +840,18 @@ DisplayLoseMessage PROC
     ret
 DisplayLoseMessage ENDP
 
-WaitForKey PROC
+WaitForKey PROC         ;ouput key in al (r/m - case insensitive)
     mov eax, prompt_color
     call SetTextColor
-    call GetLowerMidRow
-    add eax, 3  ; Below win/lose messages
+    call GetLowerMidRow      ;getting row in eax
+    add eax, 3      ;Below win/lose messages
     mov ebx, eax
-    mov edx, OFFSET msg_restart
+    mov edx, OFFSET msg_restart     ;r or m wala msg
     call CenterTextAtRow
     mov eax, 800
     call Delay
     call ReadChar
-    ; Return the key in AL for the caller to check
     ret
 WaitForKey ENDP
 
 END
-    
