@@ -172,12 +172,12 @@ col_loop:
     call Gotoxy
     call WriteChar
     
-    cmp al, solid       ;pattern will be solid -> lHalf -> solid -> lHalf and so on
-    je to_lower         ;if it is already solid to ab lHalf print hoga and vice versa
+    cmp al, solid       ;pattern will be solid -> uHalf -> solid -> uHalf and so on
+    je to_upper         ;if it is already solid to ab lHalf print hoga and vice versa
     mov al, solid
     jmp next
     
-to_lower:
+to_upper:
     mov al, uHalf
     
 next:
@@ -306,12 +306,9 @@ menu::                  ;global bcoz LaunchGame bhi jmp krega yahaan
     dec dl                      ;dh is already set (restored from the PROC)
     call DrawAltCol  ;right most col
 
-
     mov eax, lightCyan + (black*16) ;colour for the shaded cols
     call SetTextColor
 
-    mov ecx, screenHeight
-    sub ecx, 2
     mov dl, 1               ;setting dl - dh is the same as before
     call DrawShades         ;left 
 
@@ -322,7 +319,7 @@ menu::                  ;global bcoz LaunchGame bhi jmp krega yahaan
     mov eax, white + (black * 16)   ;resetting colour
     call SetTextColor
 
-   mov dh, BYTE PTR screenHeight
+    mov dh, BYTE PTR screenHeight
     dec dh
     mov dl, 0
     mov al, solid
@@ -522,7 +519,7 @@ abhi_nahi:
     mov dl,bl
     call Gotoxy
     call WriteChar
-    call Crlf
+
     
     ; Process choice
     cmp al, '1'
@@ -535,7 +532,7 @@ abhi_nahi:
     je quitProgram
     
 
-   mov eax, black + (red * 16)  
+    mov eax, black + (red * 16)  
     call SetTextColor
 
     mov ebx, LENGTHOF msg    ;if invalid we will write that inblack with red background inside that box
@@ -548,7 +545,6 @@ abhi_nahi:
     mov edx, OFFSET invalidText
     call WriteString
 
-    call Crlf
     mov eax, 1500       ;thora sa ruk kr loop again
     call Delay
 
@@ -557,23 +553,19 @@ abhi_nahi:
 playMaze:
     mov ebx, OFFSET TreasureHuntMaze
     call LaunchGame
-    jmp menu
 
 playFlappy:
     mov ebx, OFFSET FlappyBird
     call LaunchGame
-    jmp menu
 
 playHangman:
     mov ebx, OFFSET Hangman
     call LaunchGame
-    jmp menu
 
 
 quitProgram:
    
     call Reset
-    call Clrscr
 
     mov esi, OFFSET exitText
     mov ecx, EXIT_LINES
