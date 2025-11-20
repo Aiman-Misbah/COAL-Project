@@ -5,7 +5,6 @@ INCLUDE Irvine32.inc
 spc EQU 32      ;space
 trc EQU 187     ;top right corner
 tlc EQU 201     ;top left corner
-blc EQU 200     ;bottom left corner
 vl EQU 186      ;vertical line
 hl EQU 205      ;horizontal line
 t_up EQU 202    ;ulta T
@@ -256,9 +255,6 @@ DisplayWelcomeScreen PROC
     mov edx, OFFSET welcome_msg3
     call CenterTextAtRow
 
-    
-    mov eax, hangman_color
-    call SetTextColor
 
     mov esi, OFFSET hangman2
     call DisplayHangmanAt       ;esi mein offset and ebx mein row
@@ -324,9 +320,6 @@ DisplayInstructions PROC
     add ebx, 2
     mov edx, OFFSET instructions5
     call CenterTextAtRow
-
-    mov eax, hangman_color
-    call SetTextColor
 
     mov esi, OFFSET hangman6
     call DisplayHangmanAt       ;esi mein offset and ebx mein row
@@ -540,7 +533,7 @@ DisplayHangmanAt PROC   ;only for the welcome screen wale
     mov ebx, 3
     mov edx, 0
     div ebx               ;1/3rd of the screen width
-    sub eax, 3            ;a little to the right
+    sub eax, 3            ;a little to the left
     mov dl, al
 
     mov eax, center_row
@@ -854,4 +847,4 @@ WaitForKey PROC         ;ouput key in al (r/m - case insensitive)
     ret
 WaitForKey ENDP
 
-END
+END  
